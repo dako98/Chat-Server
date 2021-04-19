@@ -4,15 +4,22 @@
 #define debug
 
 #include <string>
+#include <iostream>
 
 class User
 {
 
 public:
-    User();
+    User() = delete;
+    User(const std::string &name,
+         const std::string &password);
+
+    User(const User &other) = delete;
     ~User();
 
     void serialise() const;
+
+    friend std::ostream &operator<<(std::ostream &out, const User &obj);
 
 private:
     const std::string name;
