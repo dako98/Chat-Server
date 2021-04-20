@@ -33,6 +33,11 @@ void User::serialise() const
     throw std::exception();
 }
 
+std::string User::getName() const
+{
+    return name;
+}
+
 std::ostream &operator<<(std::ostream &out, const User &obj)
 {
     return out << obj.name << ' ' << obj.password;

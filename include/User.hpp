@@ -15,6 +15,9 @@ public:
          const std::string &password);
 
     User(const User &other) = delete;
+
+    std::string getName() const;
+    
     ~User();
 
     void serialise() const;
