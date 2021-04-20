@@ -20,24 +20,24 @@ Message::~Message()
 
 #include <iostream>
 
-    std::cout << "Message Destructor called, SENDER:\"" << *Psender
-              << "\" RECEIVER:\"" << *Preceiver
+    std::cout << "Message Destructor called, SENDER:\"" << sender
+              << "\" RECEIVER:\"" << receiver
               //<< "\" CONTENTS:\"" << *Pcontents << "\"\n";
               << "\" CONTENTS:\"" << contents << "\"\n";
 #endif
 }
 
-User &Message::getSender() const
+usrType Message::getSender() const
 {
-    throw std::exception();
+    return sender;
 }
-User &Message::getReceiver() const
+usrType Message::getReceiver() const
 {
-    throw std::exception();
+    return receiver;
 }
-std::string &Message::getContents() const
+std::string Message::getContents() const
 {
-    throw std::exception();
+    return contents;
 }
 std::ostream &operator<<(std::ostream &out, const Message &obj)
 {
@@ -45,7 +45,7 @@ std::ostream &operator<<(std::ostream &out, const Message &obj)
            //<< "Message { Sender: " << *(obj.Psender.get())
            //<< " receiver: " << *(obj.Preceiver.get())
            // << " contents: " << *(obj.Pcontents.get()) << " }\n";
-           << "Message { Sender: " << *(obj.Psender)
-           << " receiver: " << *(obj.Preceiver)
+           << "Message { Sender: " << (obj.sender)
+           << " receiver: " << (obj.receiver)
            << " contents: " << (obj.contents) << " }\n";
 }

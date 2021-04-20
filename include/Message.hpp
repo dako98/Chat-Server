@@ -8,15 +8,15 @@
 
 #include "User.hpp"
 
-using usrType = const User *;
+using usrType = std::string;
 
 class Message
 {
 
 public:
-    User &getSender() const;
-    User &getReceiver() const;
-    std::string &getContents() const;
+    usrType getSender() const;
+    usrType getReceiver() const;
+    std::string getContents() const;
 
     /* Construct with copies    
     Message(const std::string &text,
@@ -27,7 +27,7 @@ public:
             const std::string &text,
             const usrType &sender,
             const usrType &receiver)
-        : Preceiver(receiver), Psender(sender)
+        : receiver(receiver), sender(sender)
           //, Pcontents(text)
           ,
           contents(text)
@@ -49,11 +49,15 @@ private:
 //    const std::shared_ptr<const User> Preceiver;
 //    const std::shared_ptr<const User> Psender;
 
-    //TODO: Shouldn't the message have the contents?
+    // TODO: Shouldn't the message have the contents?
     //    const std::shared_ptr<const std::string> Pcontents;
     const std::string contents;
-    usrType Preceiver;
-    usrType Psender;
+
+    // FIXME: Save IDs instead of pointers.
+    // Users can move in memory and pointers
+    // can become invalid.
+    usrType receiver;
+    usrType sender;
 
 };
 
