@@ -10,11 +10,13 @@ class User
 {
 
 public:
-    User() = delete;
+    User();
     User(const std::string &name,
          const std::string &password);
 
-    User(const User &other) = delete;
+    User(const User &other);
+
+    User &operator=(User &&other);
 
     std::string getName() const;
     
