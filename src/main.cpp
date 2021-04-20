@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <boost/asio.hpp>
+#include <queue>
 
 #include "User.hpp"
 #include "Message.hpp"
@@ -8,25 +9,128 @@
 #include "HistoryStore.hpp"
 #include "UserStore.hpp"
 
+#include "ThreadsafeQueue.h"
+
 #define debug
 
 const int PORT = 42123;
 
 using boost::asio::ip::tcp;
 
+int sendMessage(tcp::socket &socket, const Message &message);
+/* TODO: Have 2 threads, one for receiving messages and one for sending.
+They share a message queue. The messages always have a recipient name*/
+
+void messageSender(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
+{
+    int code = 0;
+    while (!messageQueue.empty())
+    {
+        Message messageToSend = messageQueue.waitAndPop();
+        sendMessage(socket, messageToSend);
+        if (code != 0)
+        {
+            // some error occured
+        }
+    }
+}
+
+int sendMessage(tcp::socket &socket, const Message &message)
+{
+    int code = 0;
+    std::string bufferStr;
+
+    bufferStr =
+        message.getReceiver().length() + "|" + message.getReceiver() +
+        (message.getSender().length() + "|") + message.getSender() +
+        (message.getContents().length() + "|") + message.getContents();
+
+    auto buffer = boost::asio::buffer(bufferStr);
+
+    boost::asio::write(socket, buffer); // shorthand for loop doing socket.write_some()
+
+    throw std::exception();
+    return code;
+}
+
+int messageReceiver(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
+{
+    std::string readBufferStr;
+    auto buffer = boost::asio::buffer(readBufferStr);
+    boost::asio::read(socket, buffer); // shorthand for loop doing socket.write_some()
+
+    int senderLen, receiverLen, messageLen;
+    std::string sender, receiver, message;
+    boost::system::error_code error;
+    std::string rBuffer;
+    size_t readLength;
+
+    // read receiver length
+    rBuffer.resize(sizeof(int));
+    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
+    receiverLen = atoi(rBuffer.c_str());
+    rBuffer.resize(receiverLen);
+    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
+    receiver = rBuffer;
+
+    // read sender length
+    rBuffer.resize(sizeof(int));
+    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
+    senderLen = atoi(rBuffer.c_str());
+    rBuffer.resize(senderLen);
+    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
+    sender = rBuffer;
+
+    // read message length
+    rBuffer.resize(sizeof(int));
+    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
+    messageLen = atoi(rBuffer.c_str());
+    rBuffer.resize(messageLen);
+    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
+    message = rBuffer;
+
+    User senderObj = {sender, ""}, receiverObj{receiver, ""};
+    // FIXME: Refactor so messages use user name instead of objects.
+    Message constructedMessage = Message(message, sender, receiver);
+    HistoryStore::getInstance().appendHistory({senderObj, receiverObj}, {constructedMessage});
+    messageQueue.waitAndPush(constructedMessage);
+
+    //    std::stringstream stre(buffer);
+}
+
 void handleSocketConnection(tcp::socket &&socket)
 {
+    // Initialising connection
     std::cout << "got connection from: "
               << " " << socket.remote_endpoint().address().to_string()
               << " port " << socket.remote_endpoint().port() << std::endl;
 
-    std::cout << "writing" << std::endl;
+    // Getting local variables
+    UserStore *users = &UserStore::getInstance();
+    std::string providedName, providedPassword;
+    User thisUser = users->getUser(providedName);
+
+    std::string readBufferStr;
+    auto readBuffer = boost::asio::buffer(readBufferStr);
+
+    std::string recepientName;
+
+    std::cout
+        << "writing" << std::endl;
 
     std::string reply = "socket write - hello world!";
 
+    // Attempting to read from connected client
     std::vector<Message> history;
 
-    history;
+    boost::system::error_code error;
+    while (!error)
+    {
+        std::string buffer;
+        buffer.resize(8);
+        size_t readLength = socket.read_some(boost::asio::buffer(buffer), error);
+        std::cout << "read " << readLength << ": \"" << buffer.substr(0, readLength) << "\"" << std::endl;
+    }
 
     auto replyBuffer = boost::asio::buffer(reply);
 
@@ -53,11 +157,11 @@ int main()
     User testUser2("user2", "pass2");
     Message testMessage("text1", testUser1, testUser2);
 
-//    ChatHistory testHistory; // = ChatHistory();
-//    testHistory.addMessage(testMessage);
+    //    ChatHistory testHistory; // = ChatHistory();
+    //    testHistory.addMessage(testMessage);
 
-    messageStore->appendHistory(std::unordered_set<User>{testUser1,testUser2}, std::vector<Message>{testMessage});
-    ChatHistory historyMessages = messageStore->getChat({testUser1,testUser2});
+    messageStore->appendHistory(std::unordered_set<User>{testUser1, testUser2}, std::vector<Message>{testMessage});
+    ChatHistory historyMessages = messageStore->getChat({testUser1, testUser2});
     for (auto &&i : historyMessages.getHistory())
     {
         std::cout << i;
