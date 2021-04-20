@@ -28,6 +28,7 @@ User &User::operator=(const User &other)
 {
     this->name = (other.name);
     this->password = (other.password);
+    return *this;
 }
 
 bool User::operator<(const User &other) const
