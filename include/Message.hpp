@@ -23,15 +23,17 @@ public:
             const User &sender,
             const User &receiver);*/
 
-    Message(/*const std::shared_ptr<const std::string> &text,*/
-            const std::string &text,
-            const usrType &sender,
-            const usrType &receiver)
-        : receiver(receiver), sender(sender)
-          //, Pcontents(text)
-          ,
-          contents(text)
+    Message(const std::string &text,
+            const User &sender,
+            const User &receiver)
+        : receiver(receiver.getName()), sender(sender.getName()), contents(text)
     {
+    }
+    Message(const Message& other)
+    {
+        this->contents = other.contents;
+        this->receiver = other.receiver;
+        this->sender = other.sender;
     }
 
     friend std::ostream &operator<<(std::ostream &out, const Message &obj);
@@ -46,19 +48,18 @@ private:
     const User receiver;
     const std::string contents;*/
 
-//    const std::shared_ptr<const User> Preceiver;
-//    const std::shared_ptr<const User> Psender;
+    //    const std::shared_ptr<const User> Preceiver;
+    //    const std::shared_ptr<const User> Psender;
 
     // TODO: Shouldn't the message have the contents?
     //    const std::shared_ptr<const std::string> Pcontents;
-    const std::string contents;
+    std::string contents;
 
     // FIXME: Save IDs instead of pointers.
     // Users can move in memory and pointers
     // can become invalid.
     usrType receiver;
     usrType sender;
-
 };
 
 #endif // __MESSAGE_H__

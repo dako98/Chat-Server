@@ -9,22 +9,19 @@ class UserStore
 {
 
 public:
-    static UserStore &getInstance()
-    {
-        static UserStore usersDB;
-        return usersDB;
-    }
+    static UserStore &getInstance();
 
     UserStore(UserStore const &) = delete;
     void operator=(UserStore const &) = delete;
 
-    bool addUser(const User newUser);
-    const std::string getName(const std::string &name) const;
+    bool addUser(const User &newUser);
+    User getUser(const std::string name) const;
+//    const std::string getName(const std::string &name) const;
 
 private:
     UserStore();
 
-    std::map<const std::string, const User> users;
+    std::map<std::string, User> users;
 };
 
 #endif // __USERSDATABASE_H__

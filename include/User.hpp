@@ -10,16 +10,19 @@ class User
 {
 
 public:
-    User();
+    User()
+        : name(""), password("") {}
     User(const std::string &name,
          const std::string &password);
 
     User(const User &other);
 
-    User &operator=(User &&other);
+    User &operator=(const User &other);
+    bool operator<(const User &other) const;
+    bool operator==(const User &other) const;
 
     std::string getName() const;
-    
+
     ~User();
 
     void serialise() const;
@@ -27,7 +30,20 @@ public:
     friend std::ostream &operator<<(std::ostream &out, const User &obj);
 
 private:
-    const std::string name;
+    std::string name;
     std::string password;
 };
+namespace std
+{
+    template <>
+    struct hash<User>
+    {
+        size_t operator()(const User &x) const
+        {
+            return 1;
+//            return hash<std::string>()(x.getName());
+        }
+    };
+}
+
 #endif // __USER_H__

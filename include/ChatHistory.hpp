@@ -2,6 +2,7 @@
 #define __CHATHISTORY_H__
 
 #include <vector>
+#include <unordered_set>
 #include <memory>
 
 #include "Message.hpp"
@@ -10,17 +11,18 @@
 //using msgType = std::shared_ptr<const Message>;
 //using usrType = std::shared_ptr<const User>;
 
-using msgType = const Message*;
-using usrType = const User*;
+using msgType = Message;
+using usrType = std::string;
 
 const int DEFAULT_CHAT_HISTORY_LENGTH = 5;
 class ChatHistory
 {
 public:
+    ChatHistory() = default;
     ChatHistory(usrType user1, usrType user2, msgType message)
     {
-        participants.push_back(user1);
-        participants.push_back(user2);
+        participants.insert(user1);
+        participants.insert(user2);
         history.push_back(message);
     }
 
@@ -30,10 +32,10 @@ public:
 
     void addMessage(const msgType &message);
 
-    const std::vector<usrType> &getParticipants() const;
+    const std::unordered_set<usrType> &getParticipants() const;
 
 private:
     std::vector<msgType> history;
-    std::vector<usrType> participants;
+    std::unordered_set<usrType> participants;
 };
 #endif // __CHATHISTORY_H__

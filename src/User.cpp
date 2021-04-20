@@ -19,6 +19,27 @@ User::User(const std::string &name,
 #endif
 }
 
+User::User(const User &other)
+    : name(other.name), password(other.password)
+{
+}
+
+User &User::operator=(const User &other)
+{
+    this->name = (other.name);
+    this->password = (other.password);
+}
+
+bool User::operator<(const User &other) const
+{
+    return this->name < other.name;
+}
+
+bool User::operator==(const User &other) const
+{
+    return this->name == other.name;
+}
+
 User::~User()
 {
 #ifdef debug
