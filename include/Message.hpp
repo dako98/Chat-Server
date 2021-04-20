@@ -25,6 +25,12 @@ public:
         : receiver(receiver.getName()), sender(sender.getName()), contents(text)
     {
     }
+    Message(const std::string &text,
+            const std::string &sender,
+            const std::string &receiver)
+        : receiver(receiver), sender(sender), contents(text)
+    {
+    }
     Message(const Message& other)
     {
         this->contents = other.contents;
