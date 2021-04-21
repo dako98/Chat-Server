@@ -21,6 +21,8 @@ public:
     bool operator<(const User &other) const;
     bool operator==(const User &other) const;
 
+    bool comparePassword(const std::string &string) const;
+
     std::string getName() const;
 
     ~User();

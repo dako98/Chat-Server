@@ -41,6 +41,11 @@ bool User::operator==(const User &other) const
     return this->name == other.name;
 }
 
+bool User::comparePassword(const std::string &string) const
+{
+    return password == string;
+}
+
 User::~User()
 {
 #ifdef debug
