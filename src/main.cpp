@@ -1,13 +1,14 @@
 #include <iostream>
 #include <string>
 #include <boost/asio.hpp>
-#include <queue>
+//#include <queue>
 
 #include "User.hpp"
 #include "Message.hpp"
 #include "ChatHistory.hpp"
 #include "HistoryStore.hpp"
 #include "UserStore.hpp"
+#include "MessageBuilder.hpp"
 
 #include "ThreadsafeQueue.h"
 
@@ -55,44 +56,29 @@ int sendMessage(tcp::socket &socket, const Message &message)
 
 int messageReceiver(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
 {
-    std::string readBufferStr;
-    auto buffer = boost::asio::buffer(readBufferStr);
-    boost::asio::read(socket, buffer); // shorthand for loop doing socket.write_some()
-
-    int senderLen, receiverLen, messageLen;
-    std::string sender, receiver, message;
     boost::system::error_code error;
-    std::string rBuffer;
-    size_t readLength;
 
-    // read receiver length
-    rBuffer.resize(sizeof(int));
-    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
-    receiverLen = atoi(rBuffer.c_str());
-    rBuffer.resize(receiverLen);
-    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
-    receiver = rBuffer;
+    MessageBuilder receivedMessage;
+    error = receivedMessage.setReceiver(socket);
+    if (error)
+        throw std::exception();
 
-    // read sender length
-    rBuffer.resize(sizeof(int));
-    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
-    senderLen = atoi(rBuffer.c_str());
-    rBuffer.resize(senderLen);
-    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
-    sender = rBuffer;
+    error = receivedMessage.setSender(socket);
+    if (error)
+        throw std::exception();
 
-    // read message length
-    rBuffer.resize(sizeof(int));
-    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
-    messageLen = atoi(rBuffer.c_str());
-    rBuffer.resize(messageLen);
-    readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
-    message = rBuffer;
+    error = receivedMessage.setMessage(socket);
+    if (error)
+        throw std::exception();
 
-    User senderObj = {sender, ""}, receiverObj{receiver, ""};
-    // FIXME: Refactor so messages use user name instead of objects.
-    Message constructedMessage = Message(message, sender, receiver);
-    HistoryStore::getInstance().appendHistory({senderObj, receiverObj}, {constructedMessage});
+    Message constructedMessage = receivedMessage.build();
+    
+    // TODO: Refactor so messages use user name instead of objects.
+    HistoryStore::getInstance().appendHistory(
+        {{constructedMessage.getSender(), ""},
+         {constructedMessage.getReceiver(), ""}},
+        {constructedMessage});
+
     messageQueue.waitAndPush(constructedMessage);
 
     //    std::stringstream stre(buffer);
@@ -110,10 +96,24 @@ void handleSocketConnection(tcp::socket &&socket)
     std::string providedName, providedPassword;
     User thisUser = users->getUser(providedName);
 
+    ThreadSafeQueue<Message> messageQueue;
+
     std::string readBufferStr;
     auto readBuffer = boost::asio::buffer(readBufferStr);
 
     std::string recepientName;
+    bool chatting = true;
+
+    while (chatting)
+    {
+        messageReceiver(socket, messageQueue);
+
+        // print messages
+
+        // read messages to send
+
+        messageSender(socket, messageQueue);
+    }
 
     std::cout
         << "writing" << std::endl;
