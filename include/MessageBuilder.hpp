@@ -11,6 +11,7 @@
 class MessageBuilder
 {
 public:
+    boost::system::error_code &setAll(Socket &socket);
     boost::system::error_code &setSender(Socket &socket);
     boost::system::error_code &setReceiver(Socket &socket);
     boost::system::error_code &setMessage(Socket &socket);

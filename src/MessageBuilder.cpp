@@ -1,4 +1,4 @@
-#include"MessageBuilder.hpp"
+#include "MessageBuilder.hpp"
 
 #define Socket boost::asio::ip::tcp::socket
 
@@ -68,6 +68,17 @@ boost::system::error_code &MessageBuilder::setMessage(Socket &socket)
 Message &&MessageBuilder::build() const
 {
     return Message(message, sender, receiver);
+}
+
+boost::system::error_code &MessageBuilder::setAll(Socket &socket)
+{
+    boost::system::error_code error;
+
+    if (
+        !(error = setReceiver(socket)) &&
+        !(error = setSender(socket)) &&
+        !(error = setMessage(socket)))
+        return error;
 }
 
 #undef Socket
