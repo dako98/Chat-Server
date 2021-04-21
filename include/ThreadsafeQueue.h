@@ -1,6 +1,7 @@
 #ifndef __THREADSAFEQUEUE_H__
 #define __THREADSAFEQUEUE_H__
 
+#include <queue>
 template <typename T>
 class ThreadSafeQueue
 {
