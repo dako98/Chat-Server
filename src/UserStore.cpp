@@ -16,9 +16,9 @@ bool UserStore::addUser(const User &newUser)
     return !exists;
 }
 
-User UserStore::getUser(const std::string name) const
+User& UserStore::getUser(const std::string name)
 {
-    return getUser(name);
+    return users[name];
 }
 
 UserStore &UserStore::getInstance()

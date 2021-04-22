@@ -15,7 +15,7 @@ public:
     void operator=(UserStore const &) = delete;
 
     bool addUser(const User &newUser);
-    User getUser(const std::string name) const;
+    User& getUser(const std::string name);
 //    const std::string getName(const std::string &name) const;
 
 private:
