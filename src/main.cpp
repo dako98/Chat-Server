@@ -210,7 +210,7 @@ void connection(tcp::socket &&socket,
     // authentication
     UserStore *users = &UserStore::getInstance();
     std::string currentUserName = users->getUser(initialMessage.getSender()).getName();
-    std::string recipientUserName = users->getUser(initialMessage.getSender()).getName();
+    std::string recipientUserName = users->getUser(initialMessage.getReceiver()).getName();
 
     if (users->getUser(currentUserName).comparePassword(initialMessage.getContents()))
     {
@@ -219,6 +219,8 @@ void connection(tcp::socket &&socket,
     else
     {
         // drop connection
+        
+        //return;
     }
     // send/receive loop
     while (users->getUser(currentUserName).online) // figure out a better way to get user consistently
@@ -227,30 +229,6 @@ void connection(tcp::socket &&socket,
         Message receivedMessage; // TODO: put outside loop for performance
         messageReceiverV2(socket, receivedMessage);
 
-/*        auto currentMessage = receivedMessages.begin();
-        auto lastMessage = receivedMessages.begin();
-
-        while(currentMessage < lastMessage)
-        {
-            if (currentMessage->getSender() != currentUserName)
-            {
-                // go to drop connection
-                users->getUser(currentUserName).online = false;
-                break;
-            }
-            
-        }
-        // save valid messages to history
-        // TODO: There must be an easier way to do this
-        HistoryStore::getInstance().appendHistory(
-            std::unordered_set<User>{     // construct set
-                                     User{// construct user
-                                          currentUserName, ""},
-                                     User{// construct user
-                                          recipientUserName, ""}},
-            std::vector<Message>{// construct messages vector
-                                 receivedMessages.begin(), currentMessage});
-*/
     HistoryStore::getInstance().appendHistory(
             std::unordered_set<User>{     // construct set
                                     User{// construct user
@@ -286,8 +264,8 @@ int main()
     UserStore *users = &UserStore::getInstance();
     HistoryStore *messageStore = &HistoryStore::getInstance();
 
-    User testUser1("user1", "pass1");
-    User testUser2("user2", "pass2");
+    User testUser1("client1", "pass1");
+    User testUser2("client2", "pass2");
     Message testMessage("text1", testUser1, testUser2);
 
     //    ChatHistory testHistory; // = ChatHistory();
@@ -301,6 +279,7 @@ int main()
     }
 
     users->addUser(testUser1);
+    users->addUser(testUser2);
 
     try
     {
