@@ -1,14 +1,14 @@
 #include <iostream>
 #include <string>
 #include <boost/asio.hpp>
-//#include <queue>
+#include <unordered_map>
 
 #include "User.hpp"
+#include "UserStore.hpp"
 #include "Message.hpp"
+#include "MessageBuilder.hpp"
 #include "ChatHistory.hpp"
 #include "HistoryStore.hpp"
-#include "UserStore.hpp"
-#include "MessageBuilder.hpp"
 
 #include "ThreadsafeQueue.h"
 
@@ -19,6 +19,8 @@ const int PORT = 42123;
 using boost::asio::ip::tcp;
 
 int sendMessage(tcp::socket &socket, const Message &message);
+void messageSender(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue);
+
 /* TODO: Have 2 threads, one for receiving messages and one for sending.
 They share a message queue. The messages always have a recipient name*/
 
@@ -28,10 +30,26 @@ void messageSender(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
     while (!messageQueue.empty())
     {
         Message messageToSend = messageQueue.waitAndPop();
-        sendMessage(socket, messageToSend);
+        code = sendMessage(socket, messageToSend);
         if (code != 0)
         {
-            // some error occured
+            // TODO: handle if some error occured
+            throw std::exception();
+        }
+    }
+}
+
+void messageSenderV2(tcp::socket &socket, std::vector<Message> messagesToSend)
+{
+    int code = 0;
+
+for (auto &&i : messagesToSend)
+{
+        code = sendMessage(socket, i);
+        if (code != 0)
+        {
+            // TODO: handle if some error occured
+            throw std::exception();
         }
     }
 }
@@ -50,7 +68,6 @@ int sendMessage(tcp::socket &socket, const Message &message)
 
     boost::asio::write(socket, buffer); // shorthand for loop doing socket.write_some()
 
-    throw std::exception();
     return code;
 }
 
@@ -59,20 +76,12 @@ int messageReceiver(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
     boost::system::error_code error;
 
     MessageBuilder receivedMessage;
-    error = receivedMessage.setReceiver(socket);
-    if (error)
-        throw std::exception();
-
-    error = receivedMessage.setSender(socket);
-    if (error)
-        throw std::exception();
-
-    error = receivedMessage.setMessage(socket);
+    error = receivedMessage.setAll(socket);
     if (error)
         throw std::exception();
 
     Message constructedMessage = receivedMessage.build();
-    
+
     // TODO: Refactor so messages use user name instead of objects.
     HistoryStore::getInstance().appendHistory(
         {{constructedMessage.getSender(), ""},
@@ -80,10 +89,32 @@ int messageReceiver(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
         {constructedMessage});
 
     messageQueue.waitAndPush(constructedMessage);
-
-    //    std::stringstream stre(buffer);
 }
 
+/**
+ * @brief reads one message from the socket
+ * 
+ * @param socket 
+ * @param messages 
+ * @return boost::system::error_code 
+ */
+boost::system::error_code& messageReceiverV2(tcp::socket &socket, Message &message)
+{
+    boost::system::error_code error;
+
+    MessageBuilder receivedMessage;
+    error = receivedMessage.setAll(socket);
+    if (error)
+        throw std::exception();
+
+    message = receivedMessage.build();
+    return error;
+}
+
+/* TODO:
+1. Read and write to console.
+2. Authenticate
+*/
 void handleSocketConnection(tcp::socket &&socket)
 {
     // Initialising connection
@@ -101,7 +132,17 @@ void handleSocketConnection(tcp::socket &&socket)
     std::string readBufferStr;
     auto readBuffer = boost::asio::buffer(readBufferStr);
 
-    std::string recepientName;
+    // Chat initialisation
+    MessageBuilder initialMessageBuilder;
+    initialMessageBuilder.setAll(socket);
+    Message initialMessage = initialMessageBuilder.build();
+
+
+    if (users->getUser(initialMessage.getSender()).comparePassword(initialMessage.getContents()))
+    {
+        /* code */
+    }
+
     bool chatting = true;
 
     while (chatting)
@@ -146,8 +187,100 @@ void handleSocketConnection(tcp::socket &&socket)
               << std::endl;
 }
 
+
+void connection(tcp::socket &&socket,
+                std::unordered_map<std::string, ThreadSafeQueue<Message>> &sharedMessagePool)
+{
+#ifdef debug
+    // connection info
+    std::cout << "got connection from: "
+              << " " << socket.remote_endpoint().address().to_string()
+              << " port " << socket.remote_endpoint().port() << std::endl;
+#endif
+
+    // receive initial message
+    MessageBuilder initialMessageBuilder;
+    initialMessageBuilder.setAll(socket);
+    Message initialMessage = initialMessageBuilder.build();
+    
+#ifdef debug
+    std::cout << initialMessage << '\n';
+#endif
+
+    // authentication
+    UserStore *users = &UserStore::getInstance();
+    std::string currentUserName = users->getUser(initialMessage.getSender()).getName();
+    std::string recipientUserName = users->getUser(initialMessage.getSender()).getName();
+
+    if (users->getUser(currentUserName).comparePassword(initialMessage.getContents()))
+    {
+        users->getUser(currentUserName).online = true;
+    }
+    else
+    {
+        // drop connection
+    }
+    // send/receive loop
+    while (users->getUser(currentUserName).online) // figure out a better way to get user consistently
+    {
+        // receive message
+        Message receivedMessage; // TODO: put outside loop for performance
+        messageReceiverV2(socket, receivedMessage);
+
+/*        auto currentMessage = receivedMessages.begin();
+        auto lastMessage = receivedMessages.begin();
+
+        while(currentMessage < lastMessage)
+        {
+            if (currentMessage->getSender() != currentUserName)
+            {
+                // go to drop connection
+                users->getUser(currentUserName).online = false;
+                break;
+            }
+            
+        }
+        // save valid messages to history
+        // TODO: There must be an easier way to do this
+        HistoryStore::getInstance().appendHistory(
+            std::unordered_set<User>{     // construct set
+                                     User{// construct user
+                                          currentUserName, ""},
+                                     User{// construct user
+                                          recipientUserName, ""}},
+            std::vector<Message>{// construct messages vector
+                                 receivedMessages.begin(), currentMessage});
+*/
+    HistoryStore::getInstance().appendHistory(
+            std::unordered_set<User>{     // construct set
+                                    User{// construct user
+                                          currentUserName, ""},
+                                    User{// construct user
+                                          recipientUserName, ""}},
+                                    std::vector<Message>{receivedMessage});
+
+        // send to recipient queue
+        sharedMessagePool[receivedMessage.getReceiver()].waitAndPush(receivedMessage);
+
+    // receive messages for client
+    std::vector<Message> messagesToClient;
+    // this is to ensure that we don't get stuck in receiving messages.
+    int count = sharedMessagePool[currentUserName].size();
+    messagesToClient.reserve(count);
+    for (int i = 0; i < count; ++i)
+    {
+        messagesToClient.push_back(sharedMessagePool[currentUserName].waitAndPop());
+    }
+
+        // send message to client
+    messageSenderV2(socket, messagesToClient);
+    // exit condition
+}
+}
+
 int main()
 {
+    std::unordered_map<std::string, ThreadSafeQueue<Message>> sharedMessagePool;
 
     // Not sure if good practice.
     UserStore *users = &UserStore::getInstance();
@@ -185,7 +318,8 @@ int main()
                       << ":" << acceptor.local_endpoint().port() << std::endl;
             acceptor.accept(socket);
 
-            threads.push_back(std::thread(handleSocketConnection, std::move(socket)));
+//            threads.push_back(std::thread(handleSocketConnection, std::move(socket)));
+            threads.push_back(std::thread(connection, std::move(socket), std::ref(sharedMessagePool)));
         }
 
         for (auto &t : threads)
