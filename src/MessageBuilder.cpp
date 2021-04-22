@@ -1,76 +1,97 @@
+#include <strstream>
+#include <boost/asio/read_until.hpp>
+
 #include "MessageBuilder.hpp"
 
-#define Socket boost::asio::ip::tcp::socket
+//#define Socket boost::asio::ip::tcp::socket
 
-boost::system::error_code &MessageBuilder::setSender(Socket &socket)
+//using Socket = boost::asio::ip::tcp::socket;
+
+boost::system::error_code MessageBuilder::setSender(Socket &socket)
 {
     boost::system::error_code error;
     int readLength = 0;
 
-    rBuffer.resize(sizeof(int));
+    char size;
+//    std::string rBuffer;
 
-    while (readLength < sizeof(int))
-        readLength += socket.read_some(boost::asio::buffer(rBuffer), error);
+//    rBuffer.resize(1);
+
+    while (readLength < 1)
+        readLength += socket.read_some(boost::asio::buffer(rBuffer,1), error);
     readLength = 0;
 
-    int senderLen = atoi(rBuffer.c_str());
+    size = rBuffer[0];
 
-    rBuffer.resize(senderLen);
+    int receiverLen = size;
+    rBuffer.resize(receiverLen);
 
-    while (readLength < senderLen)
-        readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
+    while (readLength < receiverLen)
+        readLength = socket.read_some(boost::asio::buffer(rBuffer, receiverLen), error);
+
     sender = rBuffer;
 
     return error;
 }
-boost::system::error_code &MessageBuilder::setReceiver(Socket &socket)
+boost::system::error_code MessageBuilder::setReceiver(Socket &socket)
 {
     boost::system::error_code error;
+    
     int readLength = 0;
 
-    rBuffer.resize(sizeof(int));
+    char size;
 
-    while (readLength < sizeof(int))
-        readLength += socket.read_some(boost::asio::buffer(rBuffer), error);
+    while (readLength < 1)
+        readLength += socket.read_some(boost::asio::buffer(rBuffer,1), error);
     readLength = 0;
 
-    int receiverLen = atoi(rBuffer.c_str());
+    size = rBuffer[0];
 
-    rBuffer.resize(receiverLen);
+    int receiverLen = size;
 
     while (readLength < receiverLen)
-        readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
-    receiver = rBuffer;
+    {
+        readLength += socket.read_some(boost::asio::buffer(rBuffer,receiverLen), error);
+        receiver += rBuffer;
+    }
+
+    //std::string rBuffer = "";
+    //receiver = rBuffer;
 
     return error;
 }
-boost::system::error_code &MessageBuilder::setMessage(Socket &socket)
+boost::system::error_code MessageBuilder::setMessage(Socket &socket)
 {
     boost::system::error_code error;
     int readLength = 0;
 
-    rBuffer.resize(sizeof(int));
+    char size;
+//    std::string rBuffer;
 
-    while (readLength < sizeof(int))
-        readLength += socket.read_some(boost::asio::buffer(rBuffer), error);
+    rBuffer.resize(1);
+
+    while (readLength < 1)
+        readLength += socket.read_some(boost::asio::buffer(rBuffer,1), error);
     readLength = 0;
 
-    int messageLen = atoi(rBuffer.c_str());
+    size = rBuffer[0];
 
-    rBuffer.resize(messageLen);
+    int receiverLen = size;
+    rBuffer.resize(receiverLen);
 
-    while (readLength < messageLen)
-        readLength = socket.read_some(boost::asio::buffer(rBuffer), error);
+    while (readLength < receiverLen)
+        readLength = socket.read_some(boost::asio::buffer(rBuffer,receiverLen), error);
+
     message = rBuffer;
 
     return error;
 }
-Message &&MessageBuilder::build() const
+Message MessageBuilder::build() const
 {
-    return Message(message, sender, receiver);
+    return std::move(Message(message, sender, receiver));
 }
 
-boost::system::error_code &MessageBuilder::setAll(Socket &socket)
+boost::system::error_code MessageBuilder::setAll(Socket &socket)
 {
     boost::system::error_code error;
 
@@ -81,4 +102,5 @@ boost::system::error_code &MessageBuilder::setAll(Socket &socket)
         return error;
 }
 
-#undef Socket
+//#undef Socket
+    

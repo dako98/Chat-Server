@@ -35,19 +35,33 @@ public:
         : receiver(receiver), sender(sender), contents(text)
     {
     }
-    Message(const Message& other)
+    Message(const Message &other)
     {
         this->contents = other.contents;
         this->receiver = other.receiver;
         this->sender = other.sender;
     }
 
+    Message &operator=(Message &&other)
+    {
+        this->contents= std::move( other.contents);
+        this->receiver= std::move( other.receiver);
+        this->sender = std::move(other.sender);
+        return *this;
+    }
+
+/*    Message(Message &&other)
+    {
+        std::swap(this->contents, other.contents);
+        std::swap(this->receiver, other.receiver);
+        std::swap(this->sender, other.sender);
+    }*/
+
     friend std::ostream &operator<<(std::ostream &out, const Message &obj);
 
     ~Message();
 
 private:
-
     std::string contents;
     usrType receiver;
     usrType sender;
