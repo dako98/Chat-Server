@@ -27,6 +27,8 @@ public:
 
     ~User();
 
+    bool online;
+
     void serialise() const;
 
     friend std::ostream &operator<<(std::ostream &out, const User &obj);

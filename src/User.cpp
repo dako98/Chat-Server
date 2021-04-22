@@ -8,6 +8,8 @@
     throw std::exception();
 }*/
 
+bool online = false;
+
 User::User(const std::string &name,
            const std::string &password)
     : name(name), password(password)
