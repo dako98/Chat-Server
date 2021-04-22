@@ -18,6 +18,10 @@ public:
     usrType getReceiver() const;
     std::string getContents() const;
 
+    Message()
+        : contents(""), receiver(""), sender("")
+    {
+    }
 
     Message(const std::string &text,
             const User &sender,
