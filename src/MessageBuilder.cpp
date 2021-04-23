@@ -100,3 +100,34 @@ boost::system::error_code MessageBuilder::setAll(Socket &socket)
         !(error = setMessage(socket)))
         return error;
 }
+
+bool MessageBuilder::setSender(const std::string &sender)
+{
+    bool valid = false;
+    if (sender.length() < MAX_SIZE)
+    {
+        this->sender = sender;
+        valid = true;
+    }
+    return valid;
+}
+bool MessageBuilder::setReceiver(const std::string &receiver)
+{
+    bool valid = false;
+    if (receiver.length() < MAX_SIZE)
+    {
+        this->receiver = receiver;
+        valid = true;
+    }
+    return valid;
+}
+bool MessageBuilder::setMessage(const std::string &message)
+{
+    bool valid = false;
+    if (message.length() < MAX_SIZE)
+    {
+        this->message = message;
+        valid = true;
+    }
+    return valid;
+}
