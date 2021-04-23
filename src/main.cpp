@@ -134,13 +134,17 @@ void connection(tcp::socket &&socket,
         
         switch (status)
         {
+        case StatusCodes::OK:
+            // all good
+            break;
+
         case StatusCodes::WRONG_SENDER:
             // terminate session
             // return
             break;
-                case StatusCodes::WRONG_RECEIVER:
+        case StatusCodes::WRONG_RECEIVER:
             // TODO: figure it out.
-            
+
             break;
         default:
             throw std::exception(); // something is really wrong
