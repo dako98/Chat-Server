@@ -22,10 +22,23 @@ const int PORT = 42123;
 
 using boost::asio::ip::tcp;
 
+bool reservedName(const std::string &name)
+{
+    const std::array<const std::string, 4> reservedNames = {"server", "register", "history", "login"};
+    bool reserved = false;
+    for (auto &&i : reservedNames)
+    {
+        if (name == i)
+        {
+            reserved = true;
+            break;
+        }
+    }
+    return reserved;
+}
 
 /* TODO: Have 2 threads, one for receiving messages and one for sending.
 They share a message queue. The messages always have a recipient name*/
-
 
 /* TODO:
 1. Read and write to console.
@@ -102,6 +115,100 @@ void handleSocketConnection(tcp::socket &&socket)
               << std::endl;
 }
 
+bool authenticate(const Message &login)
+{
+    bool valid = false;
+
+    UserStore *users = &UserStore::getInstance();
+
+    if (login.getSender() != " " &&
+        login.getContents() != " " &&
+        users->getUser(login.getSender()).comparePassword(login.getContents()))
+    {
+        users->getUser(login.getSender()).online = true;
+        valid = true;
+    }
+    return valid;
+}
+
+bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUser)
+{
+    bool continueConection = false;
+
+    UserStore *users = &UserStore::getInstance();
+
+    Message receivedMessage;
+
+    Message authenticationMessage;
+
+    messageReceiverV2(socket, receivedMessage);
+
+    // User wants to register
+    if (receivedMessage.getReceiver() == "register")
+    {
+        std::string name, password;
+        name = receivedMessage.getSender();
+        password = receivedMessage.getContents();
+
+        if (!reservedName(name) &&
+            users->getUser(name) == User{})
+        {
+            users->addUser(User{name, password});
+            sendMessage(socket, {name, "server", " "});
+        }
+        else
+        {
+            sendMessage(socket, {name, "server", "Name not allowed."});
+            continueConection = false;
+        }
+    }
+    // User wants to login
+    else if (receivedMessage.getReceiver() == "login")
+    {
+        if (authenticate(receivedMessage))
+        {
+            authenticatedUser = receivedMessage.getSender();
+            continueConection = true;
+        }
+
+    }
+    // User wants to chat with a user
+    else if (receivedMessage.getReceiver() == "server")
+    {
+        if (users->getUser(receivedMessage.getContents()).online)
+        {
+            sendMessage(socket, {receivedMessage.getSender(), "server", " "});
+            continueConection = true;
+        }
+    }
+    // User wants history
+    else if (receivedMessage.getReceiver() == "history")
+    {
+        HistoryStore *historyStore = &HistoryStore::getInstance();
+        ChatHistory history;
+
+        history = historyStore->getChat({receivedMessage.getSender(), receivedMessage.getContents()});
+        std::vector<Message> messages = history.getHistory();
+
+        sendMessage(socket, {receivedMessage.getSender(),
+                             "server",
+                             std::to_string(messages.size())});
+
+        for (auto &&message : messages)
+        {
+            sendMessage(socket, message);
+        }
+        continueConection = true;
+    }
+    // Unknown initial message
+    else
+    {
+        std::cout << "Received unknown message format: \"" << receivedMessage << "\".\n";
+        continueConection = false;
+    }
+
+    return continueConection;
+}
 
 void connection(tcp::socket &&socket,
                 std::unordered_map<std::string, ThreadSafeQueue<Message>> &sharedMessagePool)
@@ -113,15 +220,23 @@ void connection(tcp::socket &&socket,
               << " port " << socket.remote_endpoint().port() << std::endl;
 #endif
 
+    // TODO: Use initialConnectionHandler
+
     UserStore *users = &UserStore::getInstance();
     std::string currentUserName;
     std::string currentRecipientName;
     Message authenticationMessage;
+    bool valid = initialConnectionHandler(socket, currentRecipientName);
+
+    if (!valid)
+    {
+        return;
+    }
 
     // authentication
-    initialAuthentication(socket, users, currentUserName, authenticationMessage);
+    //    initialAuthentication(socket, users, currentUserName, authenticationMessage);
 
-    currentRecipientName = authenticationMessage.getReceiver();
+//    currentRecipientName = authenticationMessage.getReceiver();
 
     Message receivedMessage; // outside loop for performance
     // send/receive loop
@@ -131,7 +246,7 @@ void connection(tcp::socket &&socket,
         messageReceiverV2(socket, receivedMessage);
 
         int status = validateMessage(receivedMessage, currentUserName, currentRecipientName);
-        
+
         switch (status)
         {
         case StatusCodes::OK:
@@ -151,10 +266,10 @@ void connection(tcp::socket &&socket,
             break;
         }
 
-                     // TODO: refactor arguments
+        // TODO: refactor arguments
         HistoryStore::getInstance().appendHistory(
-                    {currentUserName, currentRecipientName},
-                    std::vector<Message>{receivedMessage});
+            {currentUserName, currentRecipientName},
+            std::vector<Message>{receivedMessage});
 
         // send message to recipient queue
         sharedMessagePool[receivedMessage.getReceiver()].waitAndPush(receivedMessage);
@@ -182,7 +297,7 @@ int main()
     // Not sure if good practice.
     UserStore *users = &UserStore::getInstance();
     HistoryStore *messageStore = &HistoryStore::getInstance();
-    User server{"server", ""};
+    User server{"server", " "};
 
     User testUser1("client1", "pass1");
     User testUser2("client2", "pass2");
@@ -190,7 +305,6 @@ int main()
     users->addUser(server);
     users->addUser(testUser1);
     users->addUser(testUser2);
-
 
     try
     {
