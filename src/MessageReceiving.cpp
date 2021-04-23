@@ -20,7 +20,7 @@ int messageReceiver(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
     messageQueue.waitAndPush(constructedMessage);
 }
 
-boost::system::error_code &messageReceiverV2(tcp::socket &socket, Message &message)
+boost::system::error_code messageReceiverV2(tcp::socket &socket, Message &message)
 {
     boost::system::error_code error;
 
@@ -65,7 +65,7 @@ bool initialAuthentication(tcp::socket &socket, UserStore *users,
 int validateMessage(const Message &msg, const std::string &sender, const std::string &receiver)
 {
     int code = StatusCodes::INVALID_CODE;
-    
+
     if (msg.getReceiver() != receiver)
         code = StatusCodes::WRONG_RECEIVER;
     else if (msg.getSender() != sender)

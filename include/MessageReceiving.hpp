@@ -19,7 +19,7 @@ int messageReceiver(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
  * @param messages 
  * @return boost::system::error_code 
  */
-boost::system::error_code &messageReceiverV2(tcp::socket &socket, Message &message);
+boost::system::error_code messageReceiverV2(tcp::socket &socket, Message &message);
 
 bool initialAuthentication(tcp::socket &socket, UserStore *users,
                            std::string &userAuthenticatedAs, Message &authenticationMessage);
