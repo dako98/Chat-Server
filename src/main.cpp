@@ -10,7 +10,11 @@
 #include "ChatHistory.hpp"
 #include "HistoryStore.hpp"
 
+#include "MessageSending.hpp"
+#include "MessageReceiving.hpp"
+
 #include "ThreadsafeQueue.h"
+#include "Codes.hpp"
 
 #define debug
 
@@ -18,97 +22,10 @@ const int PORT = 42123;
 
 using boost::asio::ip::tcp;
 
-int sendMessage(tcp::socket &socket, const Message &message);
-void messageSender(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue);
 
 /* TODO: Have 2 threads, one for receiving messages and one for sending.
 They share a message queue. The messages always have a recipient name*/
 
-void messageSender(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
-{
-    int code = 0;
-    while (!messageQueue.empty())
-    {
-        Message messageToSend = messageQueue.waitAndPop();
-        code = sendMessage(socket, messageToSend);
-        if (code != 0)
-        {
-            // TODO: handle if some error occured
-            throw std::exception();
-        }
-    }
-}
-
-void messageSenderV2(tcp::socket &socket, std::vector<Message> messagesToSend)
-{
-    int code = 0;
-
-    for (auto &&i : messagesToSend)
-    {
-        code = sendMessage(socket, i);
-        if (code != 0)
-        {
-            // TODO: handle if some error occured
-            throw std::exception();
-        }
-    }
-}
-
-int sendMessage(tcp::socket &socket, const Message &message)
-{
-    int code = 0;
-
-    std::string bufferStr = "";
-    std::string receiver = (char)message.getReceiver().length() + message.getReceiver();
-    std::string sender = (char)message.getSender().length() + message.getSender();
-    std::string text = (char)message.getContents().length() + message.getContents();
-    bufferStr += receiver;
-    bufferStr += sender;
-    bufferStr += text;
-
-    auto buffer = boost::asio::buffer(bufferStr);
-
-    boost::asio::write(socket, buffer); // shorthand for loop doing socket.write_some()
-
-    return code;
-}
-
-int messageReceiver(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
-{
-    boost::system::error_code error;
-
-    MessageBuilder receivedMessage;
-    error = receivedMessage.setAll(socket);
-    if (error)
-        throw std::exception();
-
-    Message constructedMessage = receivedMessage.build();
-
-    HistoryStore::getInstance().appendHistory(
-        {constructedMessage.getSender(), constructedMessage.getReceiver()}, {constructedMessage});
-
-    messageQueue.waitAndPush(constructedMessage);
-}
-
-/**
- * @brief reads one message from the socket
- * 
- * @param socket 
- * @param messages 
- * @return boost::system::error_code 
- */
-boost::system::error_code &messageReceiverV2(tcp::socket &socket, Message &message)
-{
-    boost::system::error_code error;
-
-    MessageBuilder receivedMessage;
-    error = receivedMessage.setAll(socket);
-    if (error)
-        throw std::exception();
-
-    message = receivedMessage.build();
-    return error;
-}
 
 /* TODO:
 1. Read and write to console.
@@ -185,53 +102,6 @@ void handleSocketConnection(tcp::socket &&socket)
               << std::endl;
 }
 
-bool initialAuthentication(tcp::socket &socket, UserStore *users,
-                           std::string &userAuthenticatedAs, Message &authenticationMessage)
-{
-    bool valid = false;
-
-    // receive authentication message
-    MessageBuilder initialMessageBuilder;
-    initialMessageBuilder.setAll(socket);
-    Message initialMessage = initialMessageBuilder.build();
-
-#ifdef debug
-    std::cout << initialMessage << '\n';
-#endif
-
-    std::string currentUserName = users->getUser(initialMessage.getSender()).getName();
-
-    // if user exists and passwords match
-    if (currentUserName != "" &&
-        users->getUser(currentUserName).comparePassword(initialMessage.getContents()))
-    {
-        users->getUser(currentUserName).online = true;
-        userAuthenticatedAs = currentUserName;
-        authenticationMessage = std::move(initialMessage);
-        valid = true;
-    }
-
-    return valid;
-}
-
-enum StatusCodes
-{
-    INVALID_CODE = -1,
-
-    WRONG_SENDER,
-    WRONG_RECEIVER,
-
-    COUNT
-};
-
-int validateMessage(const Message &msg, const std::string &sender, const std::string &receiver)
-{
-    int code = INVALID_CODE;
-    if (msg.getReceiver() != receiver)
-        return WRONG_RECEIVER;
-    if (msg.getSender() != sender)
-        return WRONG_SENDER;
-}
 
 void connection(tcp::socket &&socket,
                 std::unordered_map<std::string, ThreadSafeQueue<Message>> &sharedMessagePool)
@@ -264,11 +134,11 @@ void connection(tcp::socket &&socket,
         
         switch (status)
         {
-        case WRONG_SENDER:
+        case StatusCodes::WRONG_SENDER:
             // terminate session
             // return
             break;
-                case WRONG_RECEIVER:
+                case StatusCodes::WRONG_RECEIVER:
             // TODO: figure it out.
             
             break;
@@ -317,12 +187,6 @@ int main()
     users->addUser(testUser1);
     users->addUser(testUser2);
 
-    /*
-    ChatHistory historyMessages = messageStore->getChat({testUser1, testUser2});
-    for (auto &&i : historyMessages.getHistory())
-    {
-        std::cout << i;
-    }*/
 
     try
     {
