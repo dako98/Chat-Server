@@ -3,9 +3,6 @@
 
 #include "MessageBuilder.hpp"
 
-//#define Socket boost::asio::ip::tcp::socket
-
-//using Socket = boost::asio::ip::tcp::socket;
 
 boost::system::error_code MessageBuilder::setSender(Socket &socket)
 {
@@ -47,6 +44,7 @@ boost::system::error_code MessageBuilder::setReceiver(Socket &socket)
     size = rBuffer[0];
 
     int receiverLen = size;
+    rBuffer.resize(receiverLen);
 
     while (readLength < receiverLen && !error)
     {
@@ -82,6 +80,12 @@ boost::system::error_code MessageBuilder::setMessage(Socket &socket)
 }
 Message MessageBuilder::build() const
 {
+    /* 
+    * We don't make any checks here, since it's the
+    * users responsibility to use it correctly.
+    * Exceptions will be thrown and must be handled. 
+    */
+
     return std::move(Message(message, sender, receiver));
 }
 
