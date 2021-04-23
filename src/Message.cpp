@@ -27,11 +27,11 @@ Message::~Message()
 #endif
 }
 
-usrType Message::getSender() const
+std::string Message::getSender() const
 {
     return sender;
 }
-usrType Message::getReceiver() const
+std::string Message::getReceiver() const
 {
     return receiver;
 }

@@ -8,27 +8,27 @@
 
 #include "User.hpp"
 
-using usrType = std::string;
+//using usrType = std::string;
 
 class Message
 {
 
 public:
-    usrType getSender() const;
-    usrType getReceiver() const;
+    std::string getSender() const;
+    std::string getReceiver() const;
     std::string getContents() const;
 
     Message()
         : contents(""), receiver(""), sender("")
     {
     }
-
+/*
     Message(const std::string &text,
             const User &sender,
             const User &receiver)
         : receiver(receiver.getName()), sender(sender.getName()), contents(text)
     {
-    }
+    }*/
     Message(const std::string &text,
             const std::string &sender,
             const std::string &receiver)
@@ -50,7 +50,9 @@ public:
         return *this;
     }
 
-/*    Message(Message &&other)
+    Message &operator=(const Message &other) = default;
+
+    /*    Message(Message &&other)
     {
         std::swap(this->contents, other.contents);
         std::swap(this->receiver, other.receiver);
@@ -63,8 +65,8 @@ public:
 
 private:
     std::string contents;
-    usrType receiver;
-    usrType sender;
+    std::string receiver;
+    std::string sender;
 };
 
 #endif // __MESSAGE_H__
