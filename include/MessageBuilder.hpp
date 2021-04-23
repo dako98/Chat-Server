@@ -8,14 +8,15 @@
 // We limit the scope of this so it doesn't leak into other classes
 //#define Socket boost::asio::ip::tcp::socket
 
+const unsigned char MAX_SIZE = 255;
 
 class MessageBuilder
 {
 using Socket = boost::asio::ip::tcp::socket;
 public:
     MessageBuilder()
-        : sender(""), receiver(""), message(""), rBuffer("") {
-        rBuffer.resize(256);
+        : sender(""), receiver(""), message(""), rBuffer(" ") {
+        rBuffer.resize(MAX_SIZE + 1);
     }
 
     boost::system::error_code setAll(Socket &socket);
@@ -29,8 +30,6 @@ private:
     std::string receiver;
     std::string message;
     std::string rBuffer;
-
-    Message constructedMessage;
 };
 
 
