@@ -27,29 +27,23 @@ ChatHistory HistoryStore::getChat(const std::unordered_set<User> &participants) 
 /**
  * @brief Add messages to chat history
  * 
- * @param participants 
- * @param messages 
+ * @param participants names of participants
+ * @param messages messages to pushback
  * @return true - succesful add
  * @return false - chat not found
  */
-bool HistoryStore::appendHistory(const std::unordered_set<User> &participants,
+bool HistoryStore::appendHistory(const std::unordered_set<std::string> &participants,
                                  const std::vector<Message> &messages)
 {
-    std::unordered_set<std::string> partNames;
-    for (auto &i : participants)
-    {
-        partNames.insert(i.getName());
-    }
 
     for (auto &currChat : chats)
     {
         
-        if (currChat.getParticipants() == partNames)
+        if (currChat.getParticipants() == participants)
         {
             for (auto &message : messages)
             {
                 currChat.addMessage(message);
-                
             }
             return true;
         }

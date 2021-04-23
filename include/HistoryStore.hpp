@@ -16,7 +16,8 @@ public:
 
     //    void addChat(const ChatHistory &chat);
     ChatHistory getChat(const std::unordered_set<User> &participant) const;
-    bool appendHistory(const std::unordered_set<User> &participants,
+    
+    bool appendHistory(const std::unordered_set<std::string> &participants,
                        const std::vector<Message> &messages);
 
 private:
