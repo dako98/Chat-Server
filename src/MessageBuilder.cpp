@@ -36,6 +36,7 @@ boost::system::error_code MessageBuilder::setReceiver(Socket &socket)
     int readLength = 0;
 
     char size;
+    
 
     while (readLength < 1 && !error)
         readLength += socket.read_some(boost::asio::buffer(rBuffer, 1), error);
@@ -99,5 +100,3 @@ boost::system::error_code MessageBuilder::setAll(Socket &socket)
         !(error = setMessage(socket)))
         return error;
 }
-
-//#undef Socket

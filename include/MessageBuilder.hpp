@@ -5,13 +5,12 @@
 
 #include "Message.hpp"
 
-// We limit the scope of this so it doesn't leak into other classes
-//#define Socket boost::asio::ip::tcp::socket
 
 const unsigned char MAX_SIZE = 255;
 
 class MessageBuilder
 {
+// We limit the scope of this so it doesn't leak into other classes
 using Socket = boost::asio::ip::tcp::socket;
 public:
     MessageBuilder()
@@ -31,8 +30,5 @@ private:
     std::string message;
     std::string rBuffer;
 };
-
-
-//#undef Socket
 
 #endif // __MESSAGEBUILDER_H__
