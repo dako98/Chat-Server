@@ -43,8 +43,8 @@ void messageSenderV2(tcp::socket &socket, std::vector<Message> messagesToSend)
 {
     int code = 0;
 
-for (auto &&i : messagesToSend)
-{
+    for (auto &&i : messagesToSend)
+    {
         code = sendMessage(socket, i);
         if (code != 0)
         {
@@ -57,12 +57,14 @@ for (auto &&i : messagesToSend)
 int sendMessage(tcp::socket &socket, const Message &message)
 {
     int code = 0;
-    std::string bufferStr;
 
-    bufferStr =
-        message.getReceiver().length() + "|" + message.getReceiver() +
-        (message.getSender().length() + "|") + message.getSender() +
-        (message.getContents().length() + "|") + message.getContents();
+    std::string bufferStr = "";
+    std::string receiver = (char)message.getReceiver().length() + message.getReceiver();
+    std::string sender = (char)message.getSender().length() + message.getSender();
+    std::string text = (char)message.getContents().length() + message.getContents();
+    bufferStr += receiver;
+    bufferStr += sender;
+    bufferStr += text;
 
     auto buffer = boost::asio::buffer(bufferStr);
 
@@ -82,11 +84,8 @@ int messageReceiver(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
 
     Message constructedMessage = receivedMessage.build();
 
-    // TODO: Refactor so messages use user name instead of objects.
     HistoryStore::getInstance().appendHistory(
-        {{constructedMessage.getSender(), ""},
-         {constructedMessage.getReceiver(), ""}},
-        {constructedMessage});
+        {constructedMessage.getSender(), constructedMessage.getReceiver()}, {constructedMessage});
 
     messageQueue.waitAndPush(constructedMessage);
 }
@@ -98,7 +97,7 @@ int messageReceiver(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
  * @param messages 
  * @return boost::system::error_code 
  */
-boost::system::error_code& messageReceiverV2(tcp::socket &socket, Message &message)
+boost::system::error_code &messageReceiverV2(tcp::socket &socket, Message &message)
 {
     boost::system::error_code error;
 
@@ -136,7 +135,6 @@ void handleSocketConnection(tcp::socket &&socket)
     MessageBuilder initialMessageBuilder;
     initialMessageBuilder.setAll(socket);
     Message initialMessage = initialMessageBuilder.build();
-
 
     if (users->getUser(initialMessage.getSender()).comparePassword(initialMessage.getContents()))
     {
@@ -187,6 +185,53 @@ void handleSocketConnection(tcp::socket &&socket)
               << std::endl;
 }
 
+bool initialAuthentication(tcp::socket &socket, UserStore *users,
+                           std::string &userAuthenticatedAs, Message &authenticationMessage)
+{
+    bool valid = false;
+
+    // receive authentication message
+    MessageBuilder initialMessageBuilder;
+    initialMessageBuilder.setAll(socket);
+    Message initialMessage = initialMessageBuilder.build();
+
+#ifdef debug
+    std::cout << initialMessage << '\n';
+#endif
+
+    std::string currentUserName = users->getUser(initialMessage.getSender()).getName();
+
+    // if user exists and passwords match
+    if (currentUserName != "" &&
+        users->getUser(currentUserName).comparePassword(initialMessage.getContents()))
+    {
+        users->getUser(currentUserName).online = true;
+        userAuthenticatedAs = currentUserName;
+        authenticationMessage = std::move(initialMessage);
+        valid = true;
+    }
+
+    return valid;
+}
+
+enum StatusCodes
+{
+    INVALID_CODE = -1,
+
+    WRONG_SENDER,
+    WRONG_RECEIVER,
+
+    COUNT
+};
+
+int validateMessage(const Message &msg, const std::string &sender, const std::string &receiver)
+{
+    int code = INVALID_CODE;
+    if (msg.getReceiver() != receiver)
+        return WRONG_RECEIVER;
+    if (msg.getSender() != sender)
+        return WRONG_SENDER;
+}
 
 void connection(tcp::socket &&socket,
                 std::unordered_map<std::string, ThreadSafeQueue<Message>> &sharedMessagePool)
@@ -198,62 +243,62 @@ void connection(tcp::socket &&socket,
               << " port " << socket.remote_endpoint().port() << std::endl;
 #endif
 
-    // receive initial message
-    MessageBuilder initialMessageBuilder;
-    initialMessageBuilder.setAll(socket);
-    Message initialMessage = initialMessageBuilder.build();
-    
-#ifdef debug
-    std::cout << initialMessage << '\n';
-#endif
+    UserStore *users = &UserStore::getInstance();
+    std::string currentUserName;
+    std::string currentRecipientName;
+    Message authenticationMessage;
 
     // authentication
-    UserStore *users = &UserStore::getInstance();
-    std::string currentUserName = users->getUser(initialMessage.getSender()).getName();
-    std::string recipientUserName = users->getUser(initialMessage.getReceiver()).getName();
+    initialAuthentication(socket, users, currentUserName, authenticationMessage);
 
-    if (users->getUser(currentUserName).comparePassword(initialMessage.getContents()))
-    {
-        users->getUser(currentUserName).online = true;
-    }
-    else
-    {
-        // drop connection
-        
-        //return;
-    }
+    currentRecipientName = authenticationMessage.getReceiver();
+
+    Message receivedMessage; // outside loop for performance
     // send/receive loop
     while (users->getUser(currentUserName).online) // figure out a better way to get user consistently
     {
         // receive message
-        Message receivedMessage; // TODO: put outside loop for performance
         messageReceiverV2(socket, receivedMessage);
 
-    HistoryStore::getInstance().appendHistory(
-            std::unordered_set<User>{     // construct set
-                                    User{// construct user
-                                          currentUserName, ""},
-                                    User{// construct user
-                                          recipientUserName, ""}},
-                                    std::vector<Message>{receivedMessage});
+        int status = validateMessage(receivedMessage, currentUserName, currentRecipientName);
+        
+        switch (status)
+        {
+        case WRONG_SENDER:
+            // terminate session
+            // return
+            break;
+                case WRONG_RECEIVER:
+            // TODO: figure it out.
+            
+            break;
+        default:
+            throw std::exception(); // something is really wrong
+            break;
+        }
 
-        // send to recipient queue
+                     // TODO: refactor arguments
+        HistoryStore::getInstance().appendHistory(
+                    {currentUserName, currentRecipientName},
+                    std::vector<Message>{receivedMessage});
+
+        // send message to recipient queue
         sharedMessagePool[receivedMessage.getReceiver()].waitAndPush(receivedMessage);
 
-    // receive messages for client
-    std::vector<Message> messagesToClient;
-    // this is to ensure that we don't get stuck in receiving messages.
-    int count = sharedMessagePool[currentUserName].size();
-    messagesToClient.reserve(count);
-    for (int i = 0; i < count; ++i)
-    {
-        messagesToClient.push_back(sharedMessagePool[currentUserName].waitAndPop());
-    }
+        // receive messages for client
+        std::vector<Message> messagesToClient;
+        // this is to ensure that we don't get stuck in receiving messages.
+        int count = sharedMessagePool[currentUserName].size();
+        messagesToClient.reserve(count);
+        for (int i = 0; i < count; ++i)
+        {
+            messagesToClient.push_back(sharedMessagePool[currentUserName].waitAndPop());
+        }
 
         // send message to client
-    messageSenderV2(socket, messagesToClient);
-    // exit condition
-}
+        messageSenderV2(socket, messagesToClient);
+        // exit condition
+    }
 }
 
 int main()
@@ -263,23 +308,21 @@ int main()
     // Not sure if good practice.
     UserStore *users = &UserStore::getInstance();
     HistoryStore *messageStore = &HistoryStore::getInstance();
+    User server{"server", ""};
 
     User testUser1("client1", "pass1");
     User testUser2("client2", "pass2");
-    Message testMessage("text1", testUser1, testUser2);
 
-    //    ChatHistory testHistory; // = ChatHistory();
-    //    testHistory.addMessage(testMessage);
+    users->addUser(server);
+    users->addUser(testUser1);
+    users->addUser(testUser2);
 
-    messageStore->appendHistory(std::unordered_set<User>{testUser1, testUser2}, std::vector<Message>{testMessage});
+    /*
     ChatHistory historyMessages = messageStore->getChat({testUser1, testUser2});
     for (auto &&i : historyMessages.getHistory())
     {
         std::cout << i;
-    }
-
-    users->addUser(testUser1);
-    users->addUser(testUser2);
+    }*/
 
     try
     {
@@ -297,7 +340,7 @@ int main()
                       << ":" << acceptor.local_endpoint().port() << std::endl;
             acceptor.accept(socket);
 
-//            threads.push_back(std::thread(handleSocketConnection, std::move(socket)));
+            //            threads.push_back(std::thread(handleSocketConnection, std::move(socket)));
             threads.push_back(std::thread(connection, std::move(socket), std::ref(sharedMessagePool)));
         }
 
