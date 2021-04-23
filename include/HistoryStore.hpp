@@ -15,7 +15,7 @@ public:
     void operator=(HistoryStore const &) = delete;
 
     //    void addChat(const ChatHistory &chat);
-    ChatHistory getChat(const std::unordered_set<User> &participant) const;
+    ChatHistory getChat(const std::unordered_set<std::string> &participant) const;
     
     bool appendHistory(const std::unordered_set<std::string> &participants,
                        const std::vector<Message> &messages);

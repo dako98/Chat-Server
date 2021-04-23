@@ -6,17 +6,17 @@ HistoryStore::HistoryStore()
 {
 }
 
-ChatHistory HistoryStore::getChat(const std::unordered_set<User> &participants) const
+ChatHistory HistoryStore::getChat(const std::unordered_set<std::string> &participants) const
 {
-    std::unordered_set<std::string> partNames;
-    for (auto &&i : participants)
+//    std::unordered_set<std::string> partNames;
+    /*for (auto &&i : participants)
     {
         partNames.insert(i.getName());
-    }
+    }*/
 
     for (auto &&currChat : chats)
     {
-        if (currChat.getParticipants() == partNames)
+        if (currChat.getParticipants() == participants)
         {
             return currChat;
         }
