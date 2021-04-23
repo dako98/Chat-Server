@@ -1,6 +1,6 @@
 #include "ChatHistory.hpp"
 
-const std::vector<msgType> ChatHistory::getHistory(int last) const
+const std::vector<Message> ChatHistory::getHistory(int last) const
 {
     // TODO: Study "return local addr" warning
     if (last > 0)
@@ -8,17 +8,17 @@ const std::vector<msgType> ChatHistory::getHistory(int last) const
         /* code */
 
         last = std::min<int>(last, history.size());
-        return std::vector<msgType>(history.end() - last, history.end());
+        return std::vector<Message>(history.end() - last, history.end());
     }
-    return std::vector<msgType>();
+    return std::vector<Message>();
     //return history;
 }
-void ChatHistory::addMessage(const msgType &message)
+void ChatHistory::addMessage(const Message &message)
 {
     history.push_back(message);
 }
 
-const std::unordered_set<usrType> &ChatHistory::getParticipants() const
+const std::unordered_set<std::string> &ChatHistory::getParticipants() const
 {
     return participants;
 }
