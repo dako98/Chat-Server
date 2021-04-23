@@ -44,8 +44,9 @@ namespace std
     {
         size_t operator()(const User &x) const
         {
-            return 1;
-//            return hash<std::string>()(x.getName());
+            // FIXME: implement proper hash
+//            return 1;
+            return hash<std::string>()(x.getName());
         }
     };
 }
