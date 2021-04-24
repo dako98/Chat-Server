@@ -27,6 +27,20 @@ User &UserStore::getUser(const std::string &name)
     return users[name];
 }
 
+std::vector<std::string> UserStore::getOnline() const
+{
+    std::vector<std::string> onlineUsers;
+
+    for (auto &&i : users)
+    {
+        if (i.second.online)
+        {
+            onlineUsers.push_back(i.first);
+        }
+    }
+    return onlineUsers;
+}
+
 UserStore &UserStore::getInstance()
 {
     static UserStore instance;

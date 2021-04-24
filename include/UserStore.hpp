@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "User.hpp"
 class UserStore
@@ -16,7 +17,8 @@ public:
 
     bool addUser(const User &newUser);
     User& getUser(const std::string &name);
-//    const std::string getName(const std::string &name) const;
+    std::vector<std::string> getOnline() const;
+    //    const std::string getName(const std::string &name) const;
 
 private:
     UserStore();
