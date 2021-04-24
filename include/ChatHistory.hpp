@@ -16,7 +16,8 @@ using usrType = std::string;
 
 class ChatHistory
 {
-static const int DEFAULT_CHAT_HISTORY_LENGTH = 5;
+    static const int DEFAULT_CHAT_HISTORY_LENGTH = 5;
+
 public:
     ChatHistory() = default;
     ChatHistory(std::string user1, std::string user2, Message message)
@@ -24,6 +25,11 @@ public:
         participants.insert(user1);
         participants.insert(user2);
         history.push_back(message);
+    }
+
+    ChatHistory(const std::unordered_set<std::string> &newParticipants, const std::vector<Message> &messages)
+        : participants(newParticipants), history(messages)
+    {
     }
 
     ChatHistory(const ChatHistory &other) = default;
