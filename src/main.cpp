@@ -301,6 +301,56 @@ bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUse
     return continueConection;
 }
 
+unsigned int handleReceivedMessage(const Message &receivedMessage,
+                                   std::unordered_map<std::string, ThreadSafeQueue<Message>> &sharedMessagePool,
+                                   const std::string &thisClient, const std::string &recipient);
+
+void startAsyncReceiver(tcp::socket &socket,
+                        std::unordered_map<std::string, ThreadSafeQueue<Message>> &sharedMessagePool,
+                        const std::string thisClient,
+                        const std::string recipient,
+                        unsigned int &statusCode)
+{
+    Message receivedMessage;
+    unsigned int messageCode;
+    for (;;)
+    {
+        //        receiveMessage(socket, receivedMessage);
+        messageReceiverV2(socket, receivedMessage);
+
+#ifdef debug
+        std::cout << "Received message in read thread: " << receivedMessage << "\n";
+#endif
+
+        //messageQueue.waitAndPush(receivedMessage);
+        messageCode = handleReceivedMessage(receivedMessage, sharedMessagePool, thisClient, recipient);
+        if (messageCode != StatusCodes::OK)
+        {
+            statusCode = messageCode;
+            break;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+}
+
+unsigned int handleReceivedMessage(const Message &receivedMessage,
+                                   std::unordered_map<std::string, ThreadSafeQueue<Message>> &sharedMessagePool,
+                                   const std::string &thisClient, const std::string &recipient)
+{
+    unsigned int status = validateMessage(receivedMessage, thisClient, recipient);
+    if (status == StatusCodes::OK)
+    {
+        HistoryStore::getInstance().appendHistory(
+            {thisClient, recipient},
+            std::vector<Message>{receivedMessage});
+
+        // route message to recipient queue
+        sharedMessagePool[receivedMessage.getReceiver()].waitAndPush(receivedMessage);
+    }
+    return status;
+}
+
 void connection(tcp::socket &&socket,
                 std::unordered_map<std::string, ThreadSafeQueue<Message>> &sharedMessagePool)
 {
@@ -316,6 +366,9 @@ void connection(tcp::socket &&socket,
     std::string currentRecipientName = "";
     bool hasHistory = false;
     bool valid = true;
+    bool readThreadCreated = false;
+    unsigned int status = StatusCodes::OK;
+    std::thread readThread;
     while (valid)
     {
 
@@ -328,19 +381,28 @@ void connection(tcp::socket &&socket,
             //            return;
         }
 
-        Message receivedMessage; // outside loop for performance
+//        Message receivedMessage; // outside loop for performance
+//        ThreadSafeQueue<Message> receivedMessages;
+
         // send/receive loop
-        while (users->getUser(currentUserName).online && currentRecipientName != "" && hasHistory) // figure out a better way to get user consistently
+        while (users->getUser(currentUserName).online && /*currentRecipientName != "" &&*/ hasHistory) // figure out a better way to get user consistently
         {
             // receive message.
             // FIXME: Users can only send one message at a time.
-            messageReceiverV2(socket, receivedMessage);
+            if (!readThreadCreated)
+            {
+                readThread = std::thread(startAsyncReceiver,
+                                         std::ref(socket),
+                                         std::ref(sharedMessagePool),
+                                         (currentUserName),
+                                         (currentRecipientName),
+                                         std::ref(status)); // if the status changes, the thread has already stopped
+                readThreadCreated = true;
+            }
 
-#ifdef debug
-            std::cout << "Received message: " << receivedMessage << "\n";
-#endif
+            //            messageReceiverV2(socket, receivedMessage);
 
-            unsigned int status = validateMessage(receivedMessage, currentUserName, currentRecipientName);
+//            unsigned int status = validateMessage(receivedMessage, currentUserName, currentRecipientName);
 
             switch (status)
             {
@@ -363,6 +425,7 @@ void connection(tcp::socket &&socket,
                 break;
 
             case StatusCodes::TERMINATED:
+                // session ended
                 return;
 
             default:
@@ -370,14 +433,8 @@ void connection(tcp::socket &&socket,
                 break;
             }
 
-            HistoryStore::getInstance().appendHistory(
-                {currentUserName, currentRecipientName},
-                std::vector<Message>{receivedMessage});
-
-            // send message to recipient queue
-            sharedMessagePool[receivedMessage.getReceiver()].waitAndPush(receivedMessage);
-
             // receive messages for client
+
             std::vector<Message> messagesToClient;
             // this is to ensure that we don't get stuck in receiving messages.
             int count = sharedMessagePool[currentUserName].size();
@@ -389,9 +446,20 @@ void connection(tcp::socket &&socket,
 
             // send message to client
             messageSenderV2(socket, messagesToClient);
-            // exit condition
+            
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+
         }
         hasHistory = false;
+
+        if (status != StatusCodes::OK)
+        {
+            // TODO: join message receiver thread and clear queue.
+            readThread.join();
+//            while (!receivedMessages.empty())
+//                receivedMessages.waitAndPop();
+        }
     }
 }
 
