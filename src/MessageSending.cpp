@@ -46,5 +46,9 @@ int sendMessage(tcp::socket &socket, const Message &message)
 
     boost::asio::write(socket, buffer); // shorthand for loop doing socket.write_some()
 
+#ifdef debug
+    std::cout << "Sent message: " << message << '\n';
+#endif
+
     return code;
 }
