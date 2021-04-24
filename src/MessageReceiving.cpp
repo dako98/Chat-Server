@@ -68,10 +68,10 @@ unsigned int validateMessage(const Message &msg, const std::string &sender, cons
 
     if (msg.getReceiver() != receiver)
         code |= StatusCodes::WRONG_RECEIVER;
-    else if (msg.getSender() != sender)
+    if (msg.getSender() != sender)
         code |= StatusCodes::WRONG_SENDER;
-    else
-        code |= StatusCodes::OK;
+    if (msg.getContents() == "" || msg.getContents() == " ")
+        code |= StatusCodes::WRONG_CONTENTS;
 
     return code;
 }
