@@ -35,20 +35,25 @@ ChatHistory HistoryStore::getChat(const std::unordered_set<std::string> &partici
 bool HistoryStore::appendHistory(const std::unordered_set<std::string> &participants,
                                  const std::vector<Message> &messages)
 {
-
+    bool found = false;
     for (auto &currChat : chats)
     {
-        
         if (currChat.getParticipants() == participants)
         {
+            found = true;
             for (auto &message : messages)
             {
                 currChat.addMessage(message);
             }
-            return true;
         }
     }
-    return false;
+
+    if (!found)
+    {
+        chats.push_back(ChatHistory{participants, messages});
+    }
+
+    return found;
 }
 
 HistoryStore &HistoryStore::getInstance()
