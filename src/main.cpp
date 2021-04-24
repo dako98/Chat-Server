@@ -126,6 +126,26 @@ bool giveChat(tcp::socket &socket, const Message &receivedMessage)
     return continueConnection;
 }
 
+void giveOnline(tcp::socket &socket, const Message& receivedMessage)
+{
+    std::vector<std::string> onlineUsers = UserStore::getInstance().getOnline();
+
+    MessageBuilder builder;
+
+    builder.setReceiver(receivedMessage.getSender());
+    builder.setSender("server");
+
+    builder.setMessage(std::to_string(onlineUsers.size()));
+    sendMessage(socket, builder.build());
+
+    for (auto &&i : onlineUsers)
+    {
+        builder.setMessage(i);
+
+        sendMessage(socket, builder.build());
+    }
+}
+
 bool giveHistory(tcp::socket &socket, const Message &receivedMessage)
 {
     MessageBuilder builder;
@@ -198,6 +218,7 @@ bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUse
         if (continueConection)
         {
             authenticatedUser = receivedMessage.getSender();
+            giveOnline(socket, receivedMessage);
         }
     }
     // User wants to chat with a user
@@ -331,6 +352,8 @@ void connection(tcp::socket &&socket,
                 break;
 
             case StatusCodes::WRONG_SENDER:
+                throw std::invalid_argument(" Message sender was wrong.");
+
                 // terminate session
                 hasHistory = false;
                 break;
@@ -346,7 +369,11 @@ void connection(tcp::socket &&socket,
 
             case StatusCodes::TERMINATED:
                 // session ended
-                return;
+                //throw std::invalid_argument(" Message was empty.");
+                users->getUser(currentUserName).online = false;
+                valid = false;
+
+                break;
 
             default:
                 throw std::exception(); // something is really wrong
