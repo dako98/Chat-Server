@@ -163,6 +163,7 @@ bool registerUser(tcp::socket &socket, const Message &receivedMessage)
         sendMessage(socket, response);
         continueConnection = false;
     }
+    return continueConnection;
 }
 
 bool giveChat(tcp::socket &socket, const Message &receivedMessage)
@@ -181,6 +182,18 @@ bool giveChat(tcp::socket &socket, const Message &receivedMessage)
         Message response = builder.build();
 
         sendMessage(socket, response);
+        continueConnection = true;
+    }
+    else
+    {
+        builder.setReceiver(receivedMessage.getSender());
+        builder.setSender("server");
+        builder.setMessage("User unavailable.");
+
+        Message response = builder.build();
+
+        sendMessage(socket, response);
+        //FIXME: properly handle unknown user as chat recipient
         continueConnection = true;
     }
     return continueConnection;
@@ -215,13 +228,13 @@ bool giveHistory(tcp::socket &socket, const Message &receivedMessage)
     return continueConnection;
 }
 
-bool loginUser(tcp::socket &socket, Message &receivedMessage)
+bool loginUser(tcp::socket &socket, const Message &receivedMessage)
 {
     bool continueConnection = false;
     if (authenticate(receivedMessage))
     {
         UserStore::getInstance().getUser(receivedMessage.getSender()).online = true;
-        
+
         MessageBuilder builder;
 
         builder.setReceiver(receivedMessage.getSender());
@@ -237,7 +250,7 @@ bool loginUser(tcp::socket &socket, Message &receivedMessage)
     return continueConnection;
 }
 
-bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUser)
+bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUser, std::string &recipientUser)
 {
     bool continueConection = false;
 
@@ -249,19 +262,24 @@ bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUse
     if (receivedMessage.getReceiver() == "register")
     {
         continueConection = registerUser(socket, receivedMessage);
-        //        continueConection = loginUser(receivedMessage);
-        //        continueConection = giveChat(socket, receivedMessage);
-        //        continueConection = giveHistory(socket, receivedMessage);
     }
     // User wants to login
     else if (receivedMessage.getReceiver() == "login")
     {
         continueConection = loginUser(socket, receivedMessage);
+        if (continueConection)
+        {
+            authenticatedUser = receivedMessage.getSender();
+        }
     }
     // User wants to chat with a user
     else if (receivedMessage.getReceiver() == "chat")
     {
         continueConection = giveChat(socket, receivedMessage);
+        if (continueConection)
+        {
+            recipientUser = receivedMessage.getContents();
+        }
     }
     // User wants history
     else if (receivedMessage.getReceiver() == "history")
@@ -289,18 +307,19 @@ void connection(tcp::socket &&socket,
 #endif
 
     UserStore *users = &UserStore::getInstance();
-    std::string currentUserName;
-    std::string currentRecipientName;
-
+    std::string currentUserName = "";
+    std::string currentRecipientName = "";
     bool valid = true;
     while (valid)
     {
-        //FIXME: User looses connection to server somewhere around here. Untested
-        valid = initialConnectionHandler(socket, currentUserName);
+
+        currentRecipientName = "";
+        
+        valid = initialConnectionHandler(socket, currentUserName, currentRecipientName);
 
         if (!valid)
         {
-            return;
+            //            return;
         }
 
         // authentication
@@ -310,7 +329,7 @@ void connection(tcp::socket &&socket,
 
         Message receivedMessage; // outside loop for performance
         // send/receive loop
-        while (users->getUser(currentUserName).online) // figure out a better way to get user consistently
+        while (users->getUser(currentUserName).online && currentRecipientName !="") // figure out a better way to get user consistently
         {
             // receive message
             messageReceiverV2(socket, receivedMessage);
