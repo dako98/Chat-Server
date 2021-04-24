@@ -24,7 +24,12 @@ using boost::asio::ip::tcp;
 
 bool reservedName(const std::string &name)
 {
-    const std::array<const std::string, 5> reservedNames = {"server", "register", "history", "login", "chat"};
+    const std::array<const std::string, 6> reservedNames = {"server",
+                                                            "register",
+                                                            "history", 
+                                                            "login", 
+                                                            "chat",
+                                                            " "};
     bool reserved = false;
     for (auto &&i : reservedNames)
     {
@@ -35,84 +40,6 @@ bool reservedName(const std::string &name)
         }
     }
     return reserved;
-}
-
-/* TODO: Have 2 threads, one for receiving messages and one for sending.
-They share a message queue. The messages always have a recipient name*/
-
-/* TODO:
-1. Read and write to console.
-2. Authenticate
-*/
-void handleSocketConnection(tcp::socket &&socket)
-{
-    // Initialising connection
-    std::cout << "got connection from: "
-              << " " << socket.remote_endpoint().address().to_string()
-              << " port " << socket.remote_endpoint().port() << std::endl;
-
-    // Getting local variables
-    UserStore *users = &UserStore::getInstance();
-    std::string providedName, providedPassword;
-    User thisUser = users->getUser(providedName);
-
-    ThreadSafeQueue<Message> messageQueue;
-
-    std::string readBufferStr;
-    auto readBuffer = boost::asio::buffer(readBufferStr);
-
-    // Chat initialisation
-    MessageBuilder initialMessageBuilder;
-    initialMessageBuilder.setAll(socket);
-    Message initialMessage = initialMessageBuilder.build();
-
-    if (users->getUser(initialMessage.getSender()).comparePassword(initialMessage.getContents()))
-    {
-        /* code */
-    }
-
-    bool chatting = true;
-
-    while (chatting)
-    {
-        messageReceiver(socket, messageQueue);
-
-        // print messages
-
-        // read messages to send
-
-        messageSender(socket, messageQueue);
-    }
-
-    std::cout
-        << "writing" << std::endl;
-
-    std::string reply = "socket write - hello world!";
-
-    // Attempting to read from connected client
-    std::vector<Message> history;
-
-    boost::system::error_code error;
-    while (!error)
-    {
-        std::string buffer;
-        buffer.resize(8);
-        size_t readLength = socket.read_some(boost::asio::buffer(buffer), error);
-        std::cout << "read " << readLength << ": \"" << buffer.substr(0, readLength) << "\"" << std::endl;
-    }
-
-    auto replyBuffer = boost::asio::buffer(reply);
-
-    // simulate a long write/startup without having to actually code it (for example purposes, so that we can see the main thread keeps accepting connections)
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-
-    boost::asio::write(socket, replyBuffer); // shorthand for loop doing socket.write_some()
-
-    std::cout << "closing "
-              << socket.local_endpoint().address().to_string() << ":" << socket.local_endpoint().port()
-              << "<->"
-              << socket.remote_endpoint().address().to_string() << ":" << socket.remote_endpoint().port()
-              << std::endl;
 }
 
 bool authenticate(const Message &login)
@@ -341,6 +268,7 @@ unsigned int handleReceivedMessage(const Message &receivedMessage,
     unsigned int status = validateMessage(receivedMessage, thisClient, recipient);
     if (status == StatusCodes::OK)
     {
+        // FIXME: Check where the history gets lost
         HistoryStore::getInstance().appendHistory(
             {thisClient, recipient},
             std::vector<Message>{receivedMessage});
@@ -372,8 +300,6 @@ void connection(tcp::socket &&socket,
     while (valid)
     {
 
-        //        currentRecipientName = "";
-
         valid = initialConnectionHandler(socket, currentUserName, currentRecipientName, hasHistory);
 
         if (!valid)
@@ -381,9 +307,7 @@ void connection(tcp::socket &&socket,
             //            return;
         }
 
-//        Message receivedMessage; // outside loop for performance
-//        ThreadSafeQueue<Message> receivedMessages;
-
+        
         // send/receive loop
         while (users->getUser(currentUserName).online && /*currentRecipientName != "" &&*/ hasHistory) // figure out a better way to get user consistently
         {
@@ -399,10 +323,6 @@ void connection(tcp::socket &&socket,
                                          std::ref(status)); // if the status changes, the thread has already stopped
                 readThreadCreated = true;
             }
-
-            //            messageReceiverV2(socket, receivedMessage);
-
-//            unsigned int status = validateMessage(receivedMessage, currentUserName, currentRecipientName);
 
             switch (status)
             {
@@ -446,10 +366,8 @@ void connection(tcp::socket &&socket,
 
             // send message to client
             messageSenderV2(socket, messagesToClient);
-            
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
         hasHistory = false;
 
@@ -457,8 +375,6 @@ void connection(tcp::socket &&socket,
         {
             // TODO: join message receiver thread and clear queue.
             readThread.join();
-//            while (!receivedMessages.empty())
-//                receivedMessages.waitAndPop();
         }
     }
 }
