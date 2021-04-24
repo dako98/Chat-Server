@@ -24,6 +24,6 @@ boost::system::error_code messageReceiverV2(tcp::socket &socket, Message &messag
 bool initialAuthentication(tcp::socket &socket, UserStore *users,
                            std::string &userAuthenticatedAs, Message &authenticationMessage);
 
-int validateMessage(const Message &msg, const std::string &sender, const std::string &receiver);
+unsigned int validateMessage(const Message &msg, const std::string &sender, const std::string &receiver);
 
 #endif // __MESSAGERECEIVING_H__

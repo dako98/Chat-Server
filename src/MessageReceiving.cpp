@@ -62,16 +62,16 @@ bool initialAuthentication(tcp::socket &socket, UserStore *users,
     return valid;
 }
 
-int validateMessage(const Message &msg, const std::string &sender, const std::string &receiver)
+unsigned int validateMessage(const Message &msg, const std::string &sender, const std::string &receiver)
 {
-    int code = StatusCodes::INVALID_CODE;
+    unsigned int code = StatusCodes::OK;
 
     if (msg.getReceiver() != receiver)
-        code = StatusCodes::WRONG_RECEIVER;
+        code |= StatusCodes::WRONG_RECEIVER;
     else if (msg.getSender() != sender)
-        code = StatusCodes::WRONG_SENDER;
+        code |= StatusCodes::WRONG_SENDER;
     else
-        code = StatusCodes::OK;
+        code |= StatusCodes::OK;
 
     return code;
 }
