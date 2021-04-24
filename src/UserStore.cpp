@@ -41,6 +41,15 @@ std::vector<std::string> UserStore::getOnline() const
     return onlineUsers;
 }
 
+std::ostream& operator<<(std::ostream &out, const UserStore &obj) 
+{
+    for (auto &&i : obj.users)
+    {
+        out << i.second << '\n';
+    }
+    return out;
+}
+
 UserStore &UserStore::getInstance()
 {
     static UserStore instance;

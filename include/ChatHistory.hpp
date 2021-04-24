@@ -40,6 +40,9 @@ public:
 
     const std::unordered_set<std::string> &getParticipants() const;
 
+    friend std::ostream &operator<<(std::ostream &out, const ChatHistory &obj);
+
+
 private:
     std::vector<Message> history;
     std::unordered_set<std::string> participants;

@@ -56,6 +56,15 @@ bool HistoryStore::appendHistory(const std::unordered_set<std::string> &particip
     return found;
 }
 
+std::ostream& operator<<(std::ostream &out, const HistoryStore &obj) 
+{
+    for (auto &&i : obj.chats)
+    {
+        out << i <<'\n';
+    }
+    return out;
+}
+
 HistoryStore &HistoryStore::getInstance()
 {
     static HistoryStore instance;

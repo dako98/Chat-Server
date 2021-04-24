@@ -20,6 +20,9 @@ public:
     bool appendHistory(const std::unordered_set<std::string> &participants,
                        const std::vector<Message> &messages);
 
+    friend std::ostream &operator<<(std::ostream &out, const HistoryStore &obj);
+
+
 private:
     HistoryStore();
 

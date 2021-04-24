@@ -22,3 +22,19 @@ const std::unordered_set<std::string> &ChatHistory::getParticipants() const
 {
     return participants;
 }
+
+std::ostream& operator<<(std::ostream &out, const ChatHistory &obj) 
+{
+    for (auto &&i : obj.participants)
+    {
+        out << i << ' ';
+    }
+    out << '\n';
+    for (auto &&i : obj.history)
+    {
+        out << i << '\n';
+    }
+    out << '\n';
+
+    return out;
+}

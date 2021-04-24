@@ -18,6 +18,9 @@ public:
     bool addUser(const User &newUser);
     User& getUser(const std::string &name);
     std::vector<std::string> getOnline() const;
+
+    friend std::ostream &operator<<(std::ostream &out, const UserStore &obj);
+
     //    const std::string getName(const std::string &name) const;
 
 private:
