@@ -250,7 +250,8 @@ bool loginUser(tcp::socket &socket, const Message &receivedMessage)
     return continueConnection;
 }
 
-bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUser, std::string &recipientUser)
+bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUser,
+                              std::string &recipientUser, bool &hasHistory)
 {
     bool continueConection = false;
 
@@ -285,6 +286,10 @@ bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUse
     else if (receivedMessage.getReceiver() == "history")
     {
         continueConection = giveHistory(socket, receivedMessage);
+        if (continueConection)
+        {
+            hasHistory = true;
+        }
     }
     // Unknown initial message
     else
@@ -309,32 +314,33 @@ void connection(tcp::socket &&socket,
     UserStore *users = &UserStore::getInstance();
     std::string currentUserName = "";
     std::string currentRecipientName = "";
+    bool hasHistory = false;
     bool valid = true;
     while (valid)
     {
 
-        currentRecipientName = "";
-        
-        valid = initialConnectionHandler(socket, currentUserName, currentRecipientName);
+        //        currentRecipientName = "";
+
+        valid = initialConnectionHandler(socket, currentUserName, currentRecipientName, hasHistory);
 
         if (!valid)
         {
             //            return;
         }
 
-        // authentication
-        //    initialAuthentication(socket, users, currentUserName, authenticationMessage);
-
-        //    currentRecipientName = authenticationMessage.getReceiver();
-
         Message receivedMessage; // outside loop for performance
         // send/receive loop
-        while (users->getUser(currentUserName).online && currentRecipientName !="") // figure out a better way to get user consistently
+        while (users->getUser(currentUserName).online && currentRecipientName != "" && hasHistory) // figure out a better way to get user consistently
         {
-            // receive message
+            // receive message.
+            // FIXME: Users can only send one message at a time.
             messageReceiverV2(socket, receivedMessage);
 
-            int status = validateMessage(receivedMessage, currentUserName, currentRecipientName);
+#ifdef debug
+            std::cout << "Received message: " << receivedMessage << "\n";
+#endif
+
+            unsigned int status = validateMessage(receivedMessage, currentUserName, currentRecipientName);
 
             switch (status)
             {
@@ -344,18 +350,26 @@ void connection(tcp::socket &&socket,
 
             case StatusCodes::WRONG_SENDER:
                 // terminate session
-                // return
+                hasHistory = false;
                 break;
-            case StatusCodes::WRONG_RECEIVER:
-                // TODO: figure it out.
 
+            case StatusCodes::WRONG_RECEIVER:
+                currentRecipientName = "";
                 break;
+
+            case StatusCodes::WRONG_CONTENTS:
+                // discard packet
+                continue;
+                break;
+
+            case StatusCodes::TERMINATED:
+                return;
+
             default:
                 throw std::exception(); // something is really wrong
                 break;
             }
 
-            // TODO: refactor arguments
             HistoryStore::getInstance().appendHistory(
                 {currentUserName, currentRecipientName},
                 std::vector<Message>{receivedMessage});
@@ -377,6 +391,7 @@ void connection(tcp::socket &&socket,
             messageSenderV2(socket, messagesToClient);
             // exit condition
         }
+        hasHistory = false;
     }
 }
 
