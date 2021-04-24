@@ -46,3 +46,23 @@ UserStore &UserStore::getInstance()
     static UserStore instance;
     return instance;
 }
+
+bool reservedName(const std::string &name)
+{
+    const std::array<const std::string, 6> reservedNames = {"server",
+                                                            "register",
+                                                            "history", 
+                                                            "login", 
+                                                            "chat",
+                                                            " "};
+    bool reserved = false;
+    for (auto &&i : reservedNames)
+    {
+        if (name == i)
+        {
+            reserved = true;
+            break;
+        }
+    }
+    return reserved;
+}

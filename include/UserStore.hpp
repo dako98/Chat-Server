@@ -26,4 +26,6 @@ private:
     std::map<std::string, User> users;
 };
 
+bool reservedName(const std::string &name);
+
 #endif // __USERSDATABASE_H__
