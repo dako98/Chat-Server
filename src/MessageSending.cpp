@@ -1,5 +1,6 @@
 #include "MessageSending.hpp"
 
+// TODO: Remove unused function.
 void messageSender(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
 {
     int code = 0;

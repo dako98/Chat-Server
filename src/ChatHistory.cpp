@@ -2,7 +2,6 @@
 
 const std::vector<Message> ChatHistory::getHistory(int last) const
 {
-    // TODO: Study "return local addr" warning
     if (last > 0)
     {
         /* code */

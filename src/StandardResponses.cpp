@@ -68,7 +68,7 @@ bool giveChat(tcp::socket &socket, const Message &receivedMessage)
         Message response = builder.build();
 
         sendMessage(socket, response);
-        //FIXME: properly handle unknown user as chat recipient
+
         continueConnection = true;
     }
     return continueConnection;

@@ -10,6 +10,7 @@
 
 using boost::asio::ip::tcp;
 
+//TODO: Remove unused function
 int messageReceiver(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue);
 
 /**
@@ -21,6 +22,7 @@ int messageReceiver(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
  */
 boost::system::error_code messageReceiverV2(tcp::socket &socket, Message &message);
 
+//TODO: Remove unused function
 bool initialAuthentication(tcp::socket &socket, UserStore *users,
                            std::string &userAuthenticatedAs, Message &authenticationMessage);
 
