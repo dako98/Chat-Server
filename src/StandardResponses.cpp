@@ -126,11 +126,12 @@ bool giveHistory(tcp::socket &socket, const Message &receivedMessage)
 bool loginUser(tcp::socket &socket, const Message &receivedMessage)
 {
     bool continueConnection = false;
+        MessageBuilder builder;
+
     if (authenticate(receivedMessage))
     {
         UserStore::getInstance().getUser(receivedMessage.getSender()).online = true;
 
-        MessageBuilder builder;
 
         builder.setReceiver(receivedMessage.getSender());
         builder.setSender("server");
@@ -141,6 +142,18 @@ bool loginUser(tcp::socket &socket, const Message &receivedMessage)
         sendMessage(socket, response);
 
         continueConnection = true;
+    }
+    else
+    {
+        builder.setReceiver(receivedMessage.getSender());
+        builder.setSender("server");
+        builder.setMessage("Invalid name or password.");
+
+        Message response = builder.build();
+
+        sendMessage(socket, response);
+
+        continueConnection = false;
     }
     return continueConnection;
 }
