@@ -22,7 +22,7 @@ public:
         : contents(""), receiver(""), sender("")
     {
     }
-/*
+    /*
     Message(const std::string &text,
             const User &sender,
             const User &receiver)
@@ -36,17 +36,18 @@ public:
     {
     }
     Message(const Message &other)
+        : receiver(other.receiver), sender(other.sender), contents(other.contents)
     {
-        this->contents = other.contents;
-        this->receiver = other.receiver;
-        this->sender = other.sender;
     }
 
     Message &operator=(Message &&other)
     {
-        this->contents= std::move( other.contents);
-        this->receiver= std::move( other.receiver);
-        this->sender = std::move(other.sender);
+        if (this != &other)
+        {
+            this->contents = std::move(other.contents);
+            this->receiver = std::move(other.receiver);
+            this->sender = std::move(other.sender);
+        }
         return *this;
     }
 
