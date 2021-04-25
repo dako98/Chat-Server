@@ -45,7 +45,7 @@ std::ostream &operator<<(std::ostream &out, const Message &obj)
            //<< "Message { Sender: " << *(obj.Psender.get())
            //<< " receiver: " << *(obj.Preceiver.get())
            // << " contents: " << *(obj.Pcontents.get()) << " }\n";
-           << "Message { Sender: " << (obj.sender)
-           << " receiver: " << (obj.receiver)
-           << " contents: " << (obj.contents) << " }\n";
+           << "Message { Sender: \"" << (obj.sender)
+           << "\" receiver: \"" << (obj.receiver)
+           << "\" contents: \"" << (obj.contents) << "\" }";
 }
