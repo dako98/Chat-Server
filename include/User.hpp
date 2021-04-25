@@ -1,7 +1,6 @@
 #ifndef __USER_H__
 #define __USER_H__
 
-#define debug
 
 #include <string>
 #include <iostream>
@@ -32,6 +31,8 @@ public:
     void serialise() const;
 
     friend std::ostream &operator<<(std::ostream &out, const User &obj);
+    friend std::istream &operator>>(std::istream &in, User &obj);
+
 
 private:
     std::string name;

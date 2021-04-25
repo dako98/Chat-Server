@@ -41,7 +41,7 @@ std::vector<std::string> UserStore::getOnline() const
     return onlineUsers;
 }
 
-std::ostream& operator<<(std::ostream &out, const UserStore &obj) 
+std::ostream &operator<<(std::ostream &out, const UserStore &obj)
 {
     for (auto &&i : obj.users)
     {
@@ -60,8 +60,8 @@ bool reservedName(const std::string &name)
 {
     const std::array<const std::string, 6> reservedNames = {"server",
                                                             "register",
-                                                            "history", 
-                                                            "login", 
+                                                            "history",
+                                                            "login",
                                                             "chat",
                                                             " "};
     bool reserved = false;
@@ -74,4 +74,15 @@ bool reservedName(const std::string &name)
         }
     }
     return reserved;
+}
+
+std::istream &operator>>(std::istream &in, UserStore &obj)
+{
+    User user;
+    while (!in.eof())
+    {
+        in >> user;
+        obj.addUser(user);
+    }
+    return in;
 }

@@ -65,6 +65,15 @@ void User::serialise() const
     throw std::exception();
 }
 
+std::istream &operator>>(std::istream &in, User &obj)
+{
+    std::string name, password;
+    in >> name >> password;
+    User user(name, password);
+    obj = user;
+    return in;
+}
+
 std::string User::getName() const
 {
     return name;

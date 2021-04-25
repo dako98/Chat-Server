@@ -21,6 +21,7 @@ public:
                        const std::vector<Message> &messages);
 
     friend std::ostream &operator<<(std::ostream &out, const HistoryStore &obj);
+    friend std::istream &operator>>(std::istream &in, HistoryStore &obj);
 
 
 private:

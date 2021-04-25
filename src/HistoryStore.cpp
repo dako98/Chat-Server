@@ -1,4 +1,4 @@
-#include<algorithm>
+#include <algorithm>
 
 #include "HistoryStore.hpp"
 
@@ -8,7 +8,7 @@ HistoryStore::HistoryStore()
 
 ChatHistory HistoryStore::getChat(const std::unordered_set<std::string> &participants) const
 {
-//    std::unordered_set<std::string> partNames;
+    //    std::unordered_set<std::string> partNames;
     /*for (auto &&i : participants)
     {
         partNames.insert(i.getName());
@@ -56,12 +56,32 @@ bool HistoryStore::appendHistory(const std::unordered_set<std::string> &particip
     return found;
 }
 
-std::ostream& operator<<(std::ostream &out, const HistoryStore &obj) 
+std::istream &operator>>(std::istream &in, HistoryStore &obj)
 {
+    ChatHistory history;
+    if (in.peek() == '{')
+    {
+        in.ignore();
+
+        while (in.peek() != '}')
+        {
+            in >> history;
+            obj.chats.push_back(history);
+        }
+        in.ignore();
+    }
+    return in;
+}
+
+std::ostream &operator<<(std::ostream &out, const HistoryStore &obj)
+{
+    out << '{';
     for (auto &&i : obj.chats)
     {
-        out << i <<'\n';
+        out << i;
+        //out << i << '\n';
     }
+    out << '}';
     return out;
 }
 

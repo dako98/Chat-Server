@@ -16,10 +16,11 @@ public:
     void operator=(UserStore const &) = delete;
 
     bool addUser(const User &newUser);
-    User& getUser(const std::string &name);
+    User &getUser(const std::string &name);
     std::vector<std::string> getOnline() const;
 
     friend std::ostream &operator<<(std::ostream &out, const UserStore &obj);
+    friend std::istream &operator>>(std::istream &in, UserStore &obj);
 
     //    const std::string getName(const std::string &name) const;
 

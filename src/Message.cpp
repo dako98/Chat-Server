@@ -1,5 +1,6 @@
 #include <iostream>
 #include "Message.hpp"
+#include "MessageBuilder.hpp"
 /*
 Message::Message(const std::string &text,
                  const User &sender,
@@ -41,11 +42,36 @@ std::string Message::getContents() const
 }
 std::ostream &operator<<(std::ostream &out, const Message &obj)
 {
-    return out
-           //<< "Message { Sender: " << *(obj.Psender.get())
-           //<< " receiver: " << *(obj.Preceiver.get())
-           // << " contents: " << *(obj.Pcontents.get()) << " }\n";
-           << "Message { Sender: \"" << (obj.sender)
+    
+#ifdef debug
+        out<< "Message { Sender: \"" << (obj.sender)
            << "\" receiver: \"" << (obj.receiver)
            << "\" contents: \"" << (obj.contents) << "\" }";
+#endif
+#ifndef debug
+        out << "{" << obj.sender << " " << obj.receiver << " " << obj.contents << "}";
+#endif
+        return out;
+}
+
+std::istream &operator>>(std::istream &in, Message &obj)
+{
+    if (in.peek() == '{')
+    {
+        
+        in.ignore();
+        std::string sender, receiver, contents;
+        contents.reserve(obj.MAX_FIELD_SIZE);
+        in >> sender >> receiver;
+        std::getline(in, contents, '}');
+        in.ignore();
+
+        MessageBuilder builder;
+        builder.setSender(sender);
+        builder.setReceiver(receiver);
+        builder.setMessage(contents);
+        obj = builder.build();
+    }
+
+    return in;
 }

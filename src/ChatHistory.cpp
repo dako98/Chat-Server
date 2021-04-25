@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include "ChatHistory.hpp"
 
 const std::vector<Message> ChatHistory::getHistory(int last) const
@@ -22,8 +24,38 @@ const std::unordered_set<std::string> &ChatHistory::getParticipants() const
     return participants;
 }
 
-std::ostream& operator<<(std::ostream &out, const ChatHistory &obj) 
+std::istream &operator>>(std::istream &in, ChatHistory &obj)
 {
+    if (in.peek() == '{')
+    {
+        in.ignore();
+
+        std::string buffer;
+        std::getline(in, buffer);
+
+        std::stringstream ss(buffer);
+        std::string user;
+
+        while (ss)
+        {
+            ss >> user;
+            obj.participants.insert(user);
+        }
+
+        Message message;
+        while (in.peek() != '}')
+        {
+            in >> message;
+            obj.addMessage(message);
+        }
+        in.ignore();
+    }
+    return in;
+}
+
+std::ostream &operator<<(std::ostream &out, const ChatHistory &obj)
+{
+    out << '{';
     for (auto &&i : obj.participants)
     {
         out << i << ' ';
@@ -33,7 +65,7 @@ std::ostream& operator<<(std::ostream &out, const ChatHistory &obj)
     {
         out << i << '\n';
     }
-    out << '\n';
+    out << '}';
 
     return out;
 }
