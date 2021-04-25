@@ -24,7 +24,6 @@ const int PORT = 42123;
 
 using boost::asio::ip::tcp;
 
-// FIXME: Fix serialisation and deserialisation. Figure out a better format.
 
 unsigned int handleReceivedMessage(const Message &receivedMessage,
                                    std::unordered_map<std::string, ThreadSafeQueue<Message>> &sharedMessagePool,
@@ -260,7 +259,7 @@ int main()
         tcp::acceptor acceptor(io_service, endpoint);
         std::vector<std::thread> threads;
 
-        //FIXME: enable the loop again. Disabled only to test serialisation.
+
         while (true)
         {
             tcp::socket socket(io_service);

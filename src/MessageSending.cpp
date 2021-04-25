@@ -10,7 +10,6 @@ void messageSender(tcp::socket &socket, ThreadSafeQueue<Message> &messageQueue)
         code = sendMessage(socket, messageToSend);
         if (code != 0)
         {
-            // TODO: handle if some error occured
             throw std::exception();
         }
     }
@@ -25,7 +24,6 @@ void messageSenderV2(tcp::socket &socket, std::vector<Message> &messagesToSend)
         code = sendMessage(socket, i);
         if (code != 0)
         {
-            // TODO: handle if some error occured
             throw std::exception();
         }
     }
