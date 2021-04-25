@@ -10,7 +10,7 @@ public:
     {
         std::unique_lock<std::mutex> lock(dataMutex);
         dataCondVar.wait(lock, [this]() { return !this->data.empty(); });
-        T &&front = std::move(data.front());
+        T front = std::move(data.front());
         data.pop();
         lock.unlock();
 
@@ -36,7 +36,7 @@ public:
 
     bool empty() const
     {
-        return this->size() > 0;
+        return this->size() == 0;
     }
 
 private:
