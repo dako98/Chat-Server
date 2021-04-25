@@ -3,13 +3,39 @@
 
 #include "MessageBuilder.hpp"
 
+std::string MessageBuilder::setField(Socket &socket, boost::system::error_code& error)
+{
+    int readLength = 0;
 
+    unsigned char size;
+
+    while (readLength < 1 && !error)
+        readLength += socket.read_some(boost::asio::buffer(rBuffer, 1), error);
+    readLength = 0;
+
+    size = rBuffer[0];
+
+    int fieldLen = size;
+    rBuffer.resize(fieldLen);
+
+    std::string field = "";
+
+    while (readLength < fieldLen && !error)
+    {
+        readLength += socket.read_some(boost::asio::buffer(rBuffer, fieldLen), error);
+        field += rBuffer;
+    }
+
+    return field;
+}
+
+/*
 boost::system::error_code MessageBuilder::setSender(Socket &socket)
 {
     boost::system::error_code error;
     int readLength = 0;
 
-    char size;
+    unsigned char size;
 
 
     while (readLength < 1 && !error)
@@ -35,7 +61,7 @@ boost::system::error_code MessageBuilder::setReceiver(Socket &socket)
 
     int readLength = 0;
 
-    char size;
+    unsigned char size;
     
 
     while (readLength < 1 && !error)
@@ -60,7 +86,7 @@ boost::system::error_code MessageBuilder::setMessage(Socket &socket)
     boost::system::error_code error;
     int readLength = 0;
 
-    char size;
+    unsigned char size;
     
 
     while (readLength < 1 && !error)
@@ -79,6 +105,27 @@ boost::system::error_code MessageBuilder::setMessage(Socket &socket)
 }
     return error;
 }
+*/
+
+boost::system::error_code MessageBuilder::setReceiver(Socket &socket)
+{
+    boost::system::error_code code;
+    receiver = setField(socket, code);
+    return code;
+}
+boost::system::error_code MessageBuilder::setMessage(Socket &socket)
+{
+        boost::system::error_code code;
+    message = setField(socket, code);
+    return code;
+}
+boost::system::error_code MessageBuilder::setSender(Socket &socket)
+{
+        boost::system::error_code code;
+    sender = setField(socket, code);
+    return code;
+}
+
 Message MessageBuilder::build() const
 {
     /* 

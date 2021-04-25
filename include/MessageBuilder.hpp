@@ -31,6 +31,8 @@ public:
     Message build() const;
 
 private:
+    std::string setField(Socket &socket, boost::system::error_code &error);
+
     std::string sender;
     std::string receiver;
     std::string message;
