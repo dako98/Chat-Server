@@ -2,6 +2,7 @@
 #include <string>
 #include <boost/asio.hpp>
 #include <unordered_map>
+#include <fstream>
 
 #include "User.hpp"
 #include "UserStore.hpp"
@@ -17,7 +18,7 @@
 #include "ThreadsafeQueue.h"
 #include "Codes.hpp"
 
-#define debug
+//#define debug
 
 const int PORT = 42123;
 
@@ -65,7 +66,6 @@ unsigned int handleReceivedMessage(const Message &receivedMessage,
     unsigned int status = validateMessage(receivedMessage, thisClient, recipient);
     if (status == StatusCodes::OK)
     {
-        // FIXME: Check where the history gets lost
         HistoryStore::getInstance().appendHistory(
             {thisClient, recipient},
             std::vector<Message>{receivedMessage});
@@ -104,12 +104,10 @@ void connection(tcp::socket &&socket,
             //            return;
         }
 
-        
         // send/receive loop
         while (users->getUser(currentUserName).online && /*currentRecipientName != "" &&*/ hasHistory) // figure out a better way to get user consistently
         {
-            // receive message.
-            // FIXME: Users can only send one message at a time.
+            // receive messages
             if (!readThreadCreated)
             {
                 readThread = std::thread(startAsyncReceiver,
@@ -176,9 +174,24 @@ void connection(tcp::socket &&socket,
 
         if (status != StatusCodes::OK)
         {
-            // TODO: join message receiver thread and clear queue.
             readThread.join();
         }
+    }
+}
+
+void logger(std::ostream &historyOut, std::ostream &usersOut)
+{
+    for (;;)
+    {
+#ifdef debug
+//    std::cout << "Writing logs...\n";
+#endif
+
+        historyOut << HistoryStore::getInstance();
+
+        usersOut << UserStore::getInstance() << std::endl;
+
+        std::this_thread::sleep_for(std::chrono::seconds(10));
     }
 }
 
@@ -189,14 +202,54 @@ int main()
     // Not sure if good practice.
     UserStore *users = &UserStore::getInstance();
     HistoryStore *messageStore = &HistoryStore::getInstance();
-    User server{"server", " "};
+    /*    User server{"server", " "};
 
-    User testUser1("client1", "pass1");
-    User testUser2("client2", "pass2");
+    User testUser1("user1", "pass1");
+    User testUser2("user2", "pass2");
 
     users->addUser(server);
     users->addUser(testUser1);
     users->addUser(testUser2);
+
+    Message testMsg1{"contents1", "user1", "user2"};
+    Message testMsg2{"contents2", "user2", "user1"};
+
+    HistoryStore::getInstance().appendHistory({"user1", "user2"}, {testMsg1, testMsg2});
+*/
+    std::ifstream userStoreFile;
+    std::ifstream chatStoreFile;
+    userStoreFile.open("UserStore.txt");
+    chatStoreFile.open("ChatStore.txt");
+    if (userStoreFile.is_open())
+    {
+        std::clog << "Loading users from file\n";
+        userStoreFile >> UserStore::getInstance();
+        userStoreFile.close();
+    }
+    else
+    {
+        std::cerr << "Unable to open users file";
+    }
+    if (chatStoreFile.is_open())
+    {
+        std::clog << "Loading history from file\n";
+        chatStoreFile >> HistoryStore::getInstance();
+        chatStoreFile.close();
+    }
+    else
+    {
+        std::cerr << "Unable to open history file";
+    }
+
+#ifdef debug
+    std::cout << "User store: " << UserStore::getInstance() << "END\n";
+    std::cout << "History store: " << HistoryStore::getInstance() << "END\n";
+#endif
+
+    if (chatStoreFile && userStoreFile)
+    {
+        //        std::thread(logger, std::ref(chatStoreFile), std::ref(userStoreFile));
+    }
 
     try
     {
@@ -206,6 +259,8 @@ int main()
         //tcp::endpoint endpoint(boost::asio::ip::tcp::v4(), 13);
         tcp::acceptor acceptor(io_service, endpoint);
         std::vector<std::thread> threads;
+
+        //FIXME: enable the loop again. Disabled only to test serialisation.
         while (true)
         {
             tcp::socket socket(io_service);
