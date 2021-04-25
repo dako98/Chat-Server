@@ -20,7 +20,7 @@ class ChatHistory
 
 public:
     ChatHistory() = default;
-    ChatHistory(std::string user1, std::string user2, Message message)
+    ChatHistory(const std::string &user1, const std::string &user2, const Message &message)
     {
         participants.insert(user1);
         participants.insert(user2);
@@ -41,7 +41,6 @@ public:
     const std::unordered_set<std::string> &getParticipants() const;
 
     friend std::ostream &operator<<(std::ostream &out, const ChatHistory &obj);
-
 
 private:
     std::vector<Message> history;
