@@ -1,7 +1,6 @@
 #ifndef __MESSAGE_H__
 #define __MESSAGE_H__
 
-
 #include <string>
 #include <memory>
 
@@ -11,7 +10,6 @@
 
 class Message
 {
-    const unsigned int MAX_FIELD_SIZE = 255;
 
 public:
     std::string getSender() const;
@@ -53,11 +51,11 @@ public:
 
     Message &operator=(const Message &other)
     {
-        if (this!=&other)
-        {        
-        this->contents = other.contents;
-        this->receiver = other.receiver;
-        this->sender = other.sender;
+        if (this != &other)
+        {
+            this->contents = other.contents;
+            this->receiver = other.receiver;
+            this->sender = other.sender;
         }
         return *this;
     }
@@ -72,6 +70,8 @@ public:
     friend std::ostream &operator<<(std::ostream &out, const Message &obj);
     friend std::istream &operator>>(std::istream &in, Message &obj);
 
+    static const unsigned int MAX_FIELD_SIZE = 255;
+    
     ~Message();
 
 private:

@@ -5,7 +5,7 @@
 
 #include "Message.hpp"
 
-const unsigned char MAX_SIZE = 255;
+//const unsigned char MAX_SIZE = 255;
 
 class MessageBuilder
 {
@@ -16,7 +16,7 @@ public:
     MessageBuilder()
         : sender(""), receiver(""), message(""), rBuffer(" ")
     {
-        rBuffer.resize(MAX_SIZE + 1);
+        rBuffer.resize(Message::MAX_FIELD_SIZE + 1);
     }
 
     boost::system::error_code setAll(Socket &socket);
