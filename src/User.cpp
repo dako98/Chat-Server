@@ -28,8 +28,11 @@ User::User(const User &other)
 
 User &User::operator=(const User &other)
 {
-    this->name = (other.name);
-    this->password = (other.password);
+    if (this != &other)
+    {
+        this->name = (other.name);
+        this->password = (other.password);
+    }
     return *this;
 }
 
