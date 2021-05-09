@@ -183,9 +183,9 @@ void logger(std::ostream &historyOut, std::ostream &usersOut)
     for (;;)
     {
 #ifdef debug
-//    std::cout << "Writing logs...\n";
+    std::cout << "Writing logs...\n";
 #endif
-
+// FIXME: Fix not writing to file.
         historyOut << HistoryStore::getInstance();
 
         usersOut << UserStore::getInstance() << std::endl;
@@ -201,43 +201,30 @@ int main()
     // Not sure if good practice.
     UserStore *users = &UserStore::getInstance();
     HistoryStore *messageStore = &HistoryStore::getInstance();
-    /*    User server{"server", " "};
 
-    User testUser1("user1", "pass1");
-    User testUser2("user2", "pass2");
-
-    users->addUser(server);
-    users->addUser(testUser1);
-    users->addUser(testUser2);
-
-    Message testMsg1{"contents1", "user1", "user2"};
-    Message testMsg2{"contents2", "user2", "user1"};
-
-    HistoryStore::getInstance().appendHistory({"user1", "user2"}, {testMsg1, testMsg2});
-*/
-    std::ifstream userStoreFile;
-    std::ifstream chatStoreFile;
-    userStoreFile.open("UserStore.txt");
-    chatStoreFile.open("ChatStore.txt");
-    if (userStoreFile.is_open())
+    std::ifstream userStoreFileReader;
+    std::ifstream chatStoreFileReader;
+    userStoreFileReader.open("UserStore.txt");
+    chatStoreFileReader.open("ChatStore.txt");
+    if (userStoreFileReader.is_open())
     {
         std::clog << "Loading users from file\n";
-        userStoreFile >> UserStore::getInstance();
-        userStoreFile.close();
+        userStoreFileReader >> UserStore::getInstance();
+        userStoreFileReader.close();
     }
     else
     {
-        std::cerr << "Unable to open users file";
+        std::cerr << "Unable to open users file\n";
     }
-    if (chatStoreFile.is_open())
+    if (chatStoreFileReader.is_open())
     {
         std::clog << "Loading history from file\n";
-        chatStoreFile >> HistoryStore::getInstance();
-        chatStoreFile.close();
+        chatStoreFileReader >> HistoryStore::getInstance();
+        chatStoreFileReader.close();
     }
     else
     {
-        std::cerr << "Unable to open history file";
+        std::cerr << "Unable to open history file\n";
     }
 
 #ifdef debug
@@ -245,9 +232,15 @@ int main()
     std::cout << "History store: " << HistoryStore::getInstance() << "END\n";
 #endif
 
-    if (chatStoreFile && userStoreFile)
+    std::ofstream userStoreFileWriter;
+    std::ofstream chatStoreFileWriter;
+    userStoreFileWriter.open("UserStore.txt");
+    chatStoreFileWriter.open("ChatStore.txt");
+    std::thread loggerThread;
+
+    if (chatStoreFileWriter && userStoreFileWriter)
     {
-        //        std::thread(logger, std::ref(chatStoreFile), std::ref(userStoreFile));
+        loggerThread = std::thread(logger, std::ref(chatStoreFileWriter), std::ref(userStoreFileWriter));
     }
 
     try
@@ -281,6 +274,6 @@ int main()
     {
         std::cout << e.what() << std::endl;
     }
-
+    loggerThread.join();
     return 0;
 }
