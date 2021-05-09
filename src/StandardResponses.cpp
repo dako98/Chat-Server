@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include "StandardResponses.hpp"
 
 #include "MessageBuilder.hpp"
@@ -5,6 +7,7 @@
 #include "MessageReceiving.hpp"
 #include "UserStore.hpp"
 #include "HistoryStore.hpp"
+#include "Codes.hpp"
 
 bool registerUser(tcp::socket &socket, const Message &receivedMessage)
 {
@@ -16,28 +19,26 @@ bool registerUser(tcp::socket &socket, const Message &receivedMessage)
     name = receivedMessage.getSender();
     password = receivedMessage.getContents();
 
+    builder.setReceiver(name);
+    builder.setSender("server");
+
     if (!reservedName(name) &&
         users->getUser(name) == User{})
     {
         users->addUser(User{name, password});
-        builder.setReceiver(name);
-        builder.setSender("server");
         builder.setMessage(" ");
 
-        Message response = builder.build();
-        sendMessage(socket, response);
         continueConnection = true;
     }
     else
     {
-        builder.setReceiver(name);
-        builder.setSender("server");
         builder.setMessage("Name not allowed.");
 
-        Message response = builder.build();
-        sendMessage(socket, response);
         continueConnection = false;
     }
+    Message response = builder.build();
+    sendMessage(socket, response);
+
     return continueConnection;
 }
 
@@ -74,7 +75,7 @@ bool giveChat(tcp::socket &socket, const Message &receivedMessage)
     return continueConnection;
 }
 
-void giveOnline(tcp::socket &socket, const Message& receivedMessage)
+void giveOnline(tcp::socket &socket, const Message &receivedMessage)
 {
     std::vector<std::string> onlineUsers = UserStore::getInstance().getOnline();
 
@@ -123,26 +124,34 @@ bool giveHistory(tcp::socket &socket, const Message &receivedMessage)
     return continueConnection;
 }
 
-bool loginUser(tcp::socket &socket, const Message &receivedMessage)
+bool loginUser(tcp::socket &socket, const Message &receivedMessage, std::unordered_map<std::string, ThreadSafeQueue<Message>> &sharedMessagePool)
 {
     bool continueConnection = false;
-        MessageBuilder builder;
+    MessageBuilder builder;
 
     if (authenticate(receivedMessage))
     {
-        
-        //UserStore::getInstance().getUser(receivedMessage.getSender()).online = true;
-
 
         builder.setReceiver(receivedMessage.getSender());
         builder.setSender("server");
-        builder.setMessage(" ");
+
+        if (UserStore::getInstance().getUser(receivedMessage.getSender()).online == false)
+        {
+            // Ensures that the message queue is created.
+            sharedMessagePool[receivedMessage.getSender()];
+            UserStore::getInstance().getUser(receivedMessage.getSender()).online = true;
+            builder.setMessage(" ");
+            continueConnection = true;
+        }
+        else
+        {
+            builder.setMessage("User already online.");
+            continueConnection = false;
+        }
 
         Message response = builder.build();
 
         sendMessage(socket, response);
-
-        continueConnection = true;
     }
     else
     {
@@ -160,7 +169,8 @@ bool loginUser(tcp::socket &socket, const Message &receivedMessage)
 }
 
 bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUser,
-                              std::string &recipientUser, bool &hasHistory)
+                              std::string &recipientUser, bool &hasHistory,
+                              std::unordered_map<std::string, ThreadSafeQueue<Message>> &sharedMessagePool)
 {
     bool continueConection = false;
 
@@ -176,7 +186,7 @@ bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUse
     // User wants to login
     else if (receivedMessage.getReceiver() == "login")
     {
-        continueConection = loginUser(socket, receivedMessage);
+        continueConection = loginUser(socket, receivedMessage, sharedMessagePool);
         if (continueConection)
         {
             authenticatedUser = receivedMessage.getSender();
@@ -201,6 +211,11 @@ bool initialConnectionHandler(tcp::socket &socket, std::string &authenticatedUse
             hasHistory = true;
         }
     }
+    else if (validateMessage(receivedMessage, authenticatedUser, recipientUser) == StatusCodes::TERMINATED)
+    {
+        std::cout << authenticatedUser << " closed the conection.\n";
+        continueConection = false;
+    }
     // Unknown initial message
     else
     {
@@ -221,7 +236,7 @@ bool authenticate(const Message &login)
         login.getContents() != " " &&
         users->getUser(login.getSender()).comparePassword(login.getContents()))
     {
-        users->getUser(login.getSender()).online = true;
+        //        users->getUser(login.getSender()).online = true;
         valid = true;
     }
     return valid;

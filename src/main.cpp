@@ -96,16 +96,13 @@ void connection(tcp::socket &&socket,
     while (valid)
     {
 
-        valid = initialConnectionHandler(socket, currentUserName, currentRecipientName, hasHistory);
+        valid = initialConnectionHandler(socket, currentUserName, currentRecipientName, hasHistory, sharedMessagePool);
 
         if (!valid)
         {
-            //            return;
+            break;
         }
 
-        // Ensures that the message queue is created.
-        sharedMessagePool[currentUserName];
-        UserStore::getInstance().getUser(currentUserName).online = true;
         
         // send/receive loop
         while (users->getUser(currentUserName).online && /*currentRecipientName != "" &&*/ hasHistory) // figure out a better way to get user consistently
@@ -129,7 +126,7 @@ void connection(tcp::socket &&socket,
                 break;
 
             case StatusCodes::WRONG_SENDER:
-                throw std::invalid_argument(" Message sender was wrong.");
+                throw std::invalid_argument("Message sender was wrong.");
 
                 // terminate session
                 hasHistory = false;
@@ -180,6 +177,7 @@ void connection(tcp::socket &&socket,
             readThread.join();
         }
     }
+    UserStore::getInstance().getUser(currentUserName).online = false;
 }
 
 void logger(std::ostream &historyOut, std::ostream &usersOut)
