@@ -203,20 +203,7 @@ int main()
     // Not sure if good practice.
     UserStore *users = &UserStore::getInstance();
     HistoryStore *messageStore = &HistoryStore::getInstance();
-    /*    User server{"server", " "};
 
-    User testUser1("user1", "pass1");
-    User testUser2("user2", "pass2");
-
-    users->addUser(server);
-    users->addUser(testUser1);
-    users->addUser(testUser2);
-
-    Message testMsg1{"contents1", "user1", "user2"};
-    Message testMsg2{"contents2", "user2", "user1"};
-
-    HistoryStore::getInstance().appendHistory({"user1", "user2"}, {testMsg1, testMsg2});
-*/
     std::ifstream userStoreFile;
     std::ifstream chatStoreFile;
     userStoreFile.open("UserStore.txt");
@@ -229,7 +216,7 @@ int main()
     }
     else
     {
-        std::cerr << "Unable to open users file";
+        std::cerr << "Unable to open users file\n";
     }
     if (chatStoreFile.is_open())
     {
@@ -239,7 +226,7 @@ int main()
     }
     else
     {
-        std::cerr << "Unable to open history file";
+        std::cerr << "Unable to open history file\n";
     }
 
 #ifdef debug
