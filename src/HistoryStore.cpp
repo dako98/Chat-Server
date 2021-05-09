@@ -35,6 +35,14 @@ ChatHistory HistoryStore::getChat(const std::unordered_set<std::string> &partici
 bool HistoryStore::appendHistory(const std::unordered_set<std::string> &participants,
                                  const std::vector<Message> &messages)
 {
+    /**
+     * Locking is for the whole method because if two threads search for a
+     * chat that doesn't exist, they will both add a new chat that will likely
+     * never be used and will just take up space.
+     */
+
+    std::lock_guard<std::mutex> lock(mut);
+
     bool found = false;
     for (auto &currChat : chats)
     {
@@ -52,6 +60,7 @@ bool HistoryStore::appendHistory(const std::unordered_set<std::string> &particip
     {
         chats.push_back(ChatHistory{participants, messages});
     }
+    cond.notify_one();
 
     return found;
 }
@@ -76,11 +85,17 @@ std::istream &operator>>(std::istream &in, HistoryStore &obj)
 std::ostream &operator<<(std::ostream &out, const HistoryStore &obj)
 {
     out << '{';
+
+    std::lock_guard<std::mutex> lock(obj.mut);
+
     for (auto &&i : obj.chats)
     {
         out << i;
         //out << i << '\n';
     }
+
+    obj.cond.notify_one();
+
     out << '}';
     return out;
 }
