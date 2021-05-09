@@ -103,6 +103,10 @@ void connection(tcp::socket &&socket,
             //            return;
         }
 
+        // Ensures that the message queue is created.
+        sharedMessagePool[currentUserName];
+        UserStore::getInstance().getUser(currentUserName).online = true;
+        
         // send/receive loop
         while (users->getUser(currentUserName).online && /*currentRecipientName != "" &&*/ hasHistory) // figure out a better way to get user consistently
         {

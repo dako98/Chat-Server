@@ -130,7 +130,8 @@ bool loginUser(tcp::socket &socket, const Message &receivedMessage)
 
     if (authenticate(receivedMessage))
     {
-        UserStore::getInstance().getUser(receivedMessage.getSender()).online = true;
+        
+        //UserStore::getInstance().getUser(receivedMessage.getSender()).online = true;
 
 
         builder.setReceiver(receivedMessage.getSender());
