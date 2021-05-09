@@ -2,6 +2,8 @@
 #define __HISTORYSTORE_H__
 
 #include <unordered_set>
+#include <mutex>
+#include <condition_variable>
 
 #include "ChatHistory.hpp"
 
@@ -28,5 +30,7 @@ private:
     HistoryStore();
 
     std::vector<ChatHistory> chats;
+    mutable std::mutex mut;
+    mutable std::condition_variable cond;
 };
 #endif // __HISTORYSTORE_H__

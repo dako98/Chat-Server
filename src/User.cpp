@@ -8,7 +8,7 @@
     throw std::exception();
 }*/
 
-bool online = false;
+//bool online = false;
 
 User::User(const std::string &name,
            const std::string &password)

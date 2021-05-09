@@ -10,7 +10,7 @@ class User
 
 public:
     User()
-        : name(""), password("") {}
+        : name(""), password(""), online(false) {}
     User(const std::string &name,
          const std::string &password);
 
