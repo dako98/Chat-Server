@@ -67,13 +67,13 @@ bool HistoryStore::appendHistory(const std::unordered_set<std::string> &particip
 
 std::istream &operator>>(std::istream &in, HistoryStore &obj)
 {
-    ChatHistory history;
     if (in.peek() == '{')
     {
         in.ignore();
 
-        while (in.peek() != '}')
+        while (in.peek() != '}' && !in.eof())
         {
+            ChatHistory history;
             in >> history;
             obj.chats.push_back(history);
         }
