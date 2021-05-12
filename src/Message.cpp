@@ -63,6 +63,8 @@ std::istream &operator>>(std::istream &in, Message &obj)
         std::string sender, receiver, contents;
         contents.reserve(obj.MAX_FIELD_SIZE);
         in >> sender >> receiver;
+
+        in.ignore();
         std::getline(in, contents, '}');
         in.ignore();
 
