@@ -187,12 +187,13 @@ void logger(std::ostream &historyOut, std::ostream &usersOut)
 #ifdef debug
     std::cout << "Writing logs...\n";
 #endif
-// FIXME: Fix not writing to file.
-        historyOut << HistoryStore::getInstance();
+    historyOut.seekp(historyOut.beg);
+    historyOut << HistoryStore::getInstance() << std::flush;
 
-        usersOut << UserStore::getInstance() << std::endl;
+    usersOut.seekp(usersOut.beg);
+    usersOut << UserStore::getInstance() << std::flush;
 
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     }
 }
 
@@ -236,8 +237,8 @@ int main()
 
     std::ofstream userStoreFileWriter;
     std::ofstream chatStoreFileWriter;
-    userStoreFileWriter.open("UserStore.txt");
-    chatStoreFileWriter.open("ChatStore.txt");
+    userStoreFileWriter.open("UserStore.txt", std::ofstream::trunc);
+    chatStoreFileWriter.open("ChatStore.txt", std::ofstream::trunc);
     std::thread loggerThread;
 
     if (chatStoreFileWriter && userStoreFileWriter)
